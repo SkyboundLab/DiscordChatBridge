@@ -1,0 +1,12 @@
+{
+  "Group": "net.aerh",
+  "Name": "DiscordChatBridge",
+  "Version": "1.0.0",
+  "Description": "Discord ↔ Hytale chat relay plugin",
+  "Authors": [
+    { "Name": "Aerh" }
+  ],
+  "Website": "https://aerh.net/",
+  "Main": "net.aerh.discordbridge.DiscordBridgePlugin",
+  "ServerVersion": "*"
+}
