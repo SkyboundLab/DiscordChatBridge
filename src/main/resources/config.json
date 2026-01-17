@@ -17,7 +17,7 @@
         "Enable": true,
         "Color": "#008000"
       },
-      "Message": "Server has started"
+      "Message": "**Server has started**"
     },
     "ServerStop": {
       "Enable": true,
@@ -25,7 +25,7 @@
         "Enable": true,
         "Color": "#800000"
       },
-      "Message": "Server has stopped"
+      "Message": "**Server has stopped**"
     },
     "PlayerJoin": {
       "Enable": true,
