@@ -31,11 +31,11 @@ public final class DiscordBridgeConfig {
                     (cfg, value) -> cfg.messagesConfig = value,
                     cfg -> cfg.messagesConfig)
             .add()
-            .append(new KeyedCodec<>("Events", EventsConfig.CODEC),
-                    (cfg, value) -> cfg.eventsConfig = value,
-                    cfg -> cfg.eventsConfig)
-            .add()
-            .build();
+             .append(new KeyedCodec<>("Events", EventsConfig.CODEC),
+                     (cfg, value) -> cfg.eventsConfig = value,
+                     cfg -> cfg.eventsConfig)
+             .add()
+             .build();
 
     private boolean enabled = true;
     private boolean relayGameToDiscord = true;

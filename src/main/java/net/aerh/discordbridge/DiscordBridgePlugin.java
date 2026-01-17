@@ -20,10 +20,17 @@ import net.aerh.discordbridge.discord.model.DiscordMessage;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.Color;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.logging.Level;
@@ -41,6 +48,8 @@ public final class DiscordBridgePlugin extends JavaPlugin {
     private DiscordBotConnection botConnection;
     private boolean serverStartMessageSent;
     private boolean serverStopMessageSent;
+    private final Map<String, String> discordUserToAvatarUrl = new ConcurrentHashMap<>();
+    private final Map<String, String> hytaleUsernameToDiscordUserId = new ConcurrentHashMap<>();
 
     public DiscordBridgePlugin(@NotNull JavaPluginInit init) {
         super(init);
@@ -58,6 +67,8 @@ public final class DiscordBridgePlugin extends JavaPlugin {
 
         DiscordBridgeConfig cfg = config.get();
         getLogger().at(Level.INFO).log("Configuration loaded successfully");
+        loadMappings();
+        getLogger().at(Level.INFO).log("Mappings loaded successfully");
 
         getEventRegistry().registerGlobal(EventPriority.NORMAL, PlayerChatEvent.class, this::onPlayerChat);
         getEventRegistry().registerGlobal(PlayerConnectEvent.class, this::onPlayerConnect);
@@ -77,7 +88,19 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             return;
         }
 
-        this.botConnection = new DiscordBotConnection(cfg, getLogger(), this::relayDiscordMessage);
+        BiConsumer<String, String> avatarSetter = (userId, url) -> {
+            discordUserToAvatarUrl.put(userId, url);
+            saveMappings();
+        };
+        BiConsumer<String, String> linkSetter = (username, userId) -> {
+            hytaleUsernameToDiscordUserId.put(username, userId);
+            saveMappings();
+        };
+        Consumer<String> unlinkUser = userId -> {
+            hytaleUsernameToDiscordUserId.entrySet().removeIf(entry -> entry.getValue().equals(userId));
+            saveMappings();
+        };
+        this.botConnection = new DiscordBotConnection(cfg, getLogger(), this::relayDiscordMessage, avatarSetter, linkSetter, unlinkUser);
         getLogger().at(Level.INFO).log("Discord bot connection initialized");
     }
 
@@ -136,7 +159,10 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             getLogger().at(Level.WARNING).log("Webhook URL not configured; skipping chat message to Discord.");
             return;
         }
-        botConnection.sendWebhookMessage(webhookUrl, event.getSender().getUsername(), cleaned);
+        String username = event.getSender().getUsername();
+        String discordUserId = hytaleUsernameToDiscordUserId.get(username);
+        String avatarUrl = discordUserId != null ? discordUserToAvatarUrl.get(discordUserId) : null;
+        botConnection.sendWebhookMessage(webhookUrl, event.getSender().getUsername(), cleaned, avatarUrl);
     }
 
     private void onPlayerConnect(@NotNull PlayerConnectEvent event) {
@@ -359,6 +385,45 @@ public final class DiscordBridgePlugin extends JavaPlugin {
                     getLogger().at(Level.WARNING).log("Default config.json not found in resources");
                 }
             }
+        }
+    }
+
+    private void loadMappings() {
+        Path mappingsFile = getDataDirectory().resolve("mappings.properties");
+        if (!Files.exists(mappingsFile)) {
+            return;
+        }
+        Properties props = new Properties();
+        try (FileInputStream fis = new FileInputStream(mappingsFile.toFile())) {
+            props.load(fis);
+            for (String key : props.stringPropertyNames()) {
+                String value = props.getProperty(key);
+                if (key.startsWith("avatar.")) {
+                    String userId = key.substring(7);
+                    discordUserToAvatarUrl.put(userId, value);
+                } else if (key.startsWith("link.")) {
+                    String username = key.substring(5);
+                    hytaleUsernameToDiscordUserId.put(username, value);
+                }
+            }
+        } catch (IOException e) {
+            getLogger().at(Level.WARNING).withCause(e).log("Failed to load mappings");
+        }
+    }
+
+    private void saveMappings() {
+        Path mappingsFile = getDataDirectory().resolve("mappings.properties");
+        Properties props = new Properties();
+        for (Map.Entry<String, String> entry : discordUserToAvatarUrl.entrySet()) {
+            props.setProperty("avatar." + entry.getKey(), entry.getValue());
+        }
+        for (Map.Entry<String, String> entry : hytaleUsernameToDiscordUserId.entrySet()) {
+            props.setProperty("link." + entry.getKey(), entry.getValue());
+        }
+        try (FileOutputStream fos = new FileOutputStream(mappingsFile.toFile())) {
+            props.store(fos, "Discord Chat Bridge Mappings");
+        } catch (IOException e) {
+            getLogger().at(Level.WARNING).withCause(e).log("Failed to save mappings");
         }
     }
 }

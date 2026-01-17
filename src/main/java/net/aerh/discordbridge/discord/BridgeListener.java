@@ -9,15 +9,20 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -28,19 +33,28 @@ final class BridgeListener extends ListenerAdapter {
     private final CompletableFuture<Void> readyFuture;
     private final Consumer<DiscordMessage> relayToGameChat;
     private final Consumer<TextChannel> discordChannelUpdater;
+    private final BiConsumer<String, String> avatarSetter;
+    private final BiConsumer<String, String> linkSetter;
+    private final Consumer<String> unlinkUser;
 
     BridgeListener(
             @NotNull DiscordBridgeConfig config,
             @NotNull HytaleLogger logger,
             @NotNull CompletableFuture<Void> readyFuture,
             @NotNull Consumer<DiscordMessage> relayToGameChat,
-            @NotNull Consumer<TextChannel> discordChannelUpdater
+            @NotNull Consumer<TextChannel> discordChannelUpdater,
+            @NotNull BiConsumer<String, String> avatarSetter,
+            @NotNull BiConsumer<String, String> linkSetter,
+            @NotNull Consumer<String> unlinkUser
     ) {
         this.config = config;
         this.logger = logger;
         this.readyFuture = readyFuture;
         this.relayToGameChat = relayToGameChat;
         this.discordChannelUpdater = discordChannelUpdater;
+        this.avatarSetter = avatarSetter;
+        this.linkSetter = linkSetter;
+        this.unlinkUser = unlinkUser;
     }
 
     @Override
@@ -57,6 +71,13 @@ final class BridgeListener extends ListenerAdapter {
 
         discordChannelUpdater.accept(channel);
         logger.at(Level.INFO).log("Discord bot connected as %s", event.getJDA().getSelfUser().getAsTag());
+        event.getJDA().updateCommands().addCommands(
+                Commands.slash("avatar", "Set your avatar")
+                        .addOption(OptionType.ATTACHMENT, "image", "The image file", true),
+                Commands.slash("link", "Link your Discord account to a Hytale username")
+                        .addOption(OptionType.STRING, "username", "The Hytale username", true),
+                Commands.slash("unlink", "Unlink your Discord account from Hytale UUID")
+        ).queue();
         readyFuture.complete(null);
     }
 
@@ -104,5 +125,23 @@ final class BridgeListener extends ListenerAdapter {
         );
 
         relayToGameChat.accept(bridgeMessage);
+    }
+
+    @Override
+    public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
+        String userId = event.getUser().getId();
+        if (event.getName().equals("avatar")) {
+            Message.Attachment attachment = event.getOption("image").getAsAttachment();
+            String imageUrl = attachment.getUrl();
+            avatarSetter.accept(userId, imageUrl);
+            event.reply("Avatar set.").setEphemeral(true).queue();
+        } else if (event.getName().equals("link")) {
+            String username = event.getOption("username").getAsString();
+            linkSetter.accept(username, userId);
+            event.reply("Linked to username " + username).setEphemeral(true).queue();
+        } else if (event.getName().equals("unlink")) {
+            unlinkUser.accept(userId);
+            event.reply("Unlinked.").setEphemeral(true).queue();
+        }
     }
 }

@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -23,6 +24,9 @@ public final class DiscordBotConnection implements AutoCloseable {
     private final DiscordBridgeConfig config;
     private final HytaleLogger logger;
     private final Consumer<DiscordMessage> relayToGameChat;
+    private final BiConsumer<String, String> avatarSetter;
+    private final BiConsumer<String, String> linkSetter;
+    private final Consumer<String> unlinkUser;
     private final CompletableFuture<Void> readyFuture = new CompletableFuture<>();
     private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
@@ -32,18 +36,24 @@ public final class DiscordBotConnection implements AutoCloseable {
     public DiscordBotConnection(
             @NotNull DiscordBridgeConfig config,
             @NotNull HytaleLogger logger,
-            @NotNull Consumer<DiscordMessage> relayToGameChat
+            @NotNull Consumer<DiscordMessage> relayToGameChat,
+            @NotNull BiConsumer<String, String> avatarSetter,
+            @NotNull BiConsumer<String, String> linkSetter,
+            @NotNull Consumer<String> unlinkUser
     ) {
         this.config = config;
         this.logger = logger;
         this.relayToGameChat = relayToGameChat;
+        this.avatarSetter = avatarSetter;
+        this.linkSetter = linkSetter;
+        this.unlinkUser = unlinkUser;
     }
 
     @NotNull
     public CompletableFuture<Void> start() {
         try {
             DiscordConfig discordConfig = config.getDiscordConfig();
-            BridgeListener listener = new BridgeListener(config, logger, readyFuture, relayToGameChat, this::onChannelReady);
+            BridgeListener listener = new BridgeListener(config, logger, readyFuture, relayToGameChat, this::onChannelReady, avatarSetter, linkSetter, unlinkUser);
             JDABuilder builder = JDABuilder.createDefault(discordConfig.getBotToken())
                     .setMemberCachePolicy(MemberCachePolicy.NONE)
                     .enableIntents(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT)
@@ -96,7 +106,7 @@ public final class DiscordBotConnection implements AutoCloseable {
         }
     }
 
-    public void sendWebhookMessage(@NotNull String webhookUrl, @NotNull String username, @NotNull String content) {
+    public void sendWebhookMessage(@NotNull String webhookUrl, @NotNull String username, @NotNull String content, String avatarUrl) {
         if (webhookUrl.isEmpty()) {
             logger.at(Level.WARNING).log("Webhook URL is empty; cannot send webhook message.");
             return;
@@ -104,7 +114,12 @@ public final class DiscordBotConnection implements AutoCloseable {
 
         // Send via HTTP POST to webhook URL
         java.net.http.HttpClient httpClient = java.net.http.HttpClient.newHttpClient();
-        String json = String.format("{\"username\": \"%s\", \"content\": \"%s\"}", username.replace("\"", "\\\""), content.replace("\"", "\\\""));
+        String json;
+        if (avatarUrl != null && !avatarUrl.isEmpty()) {
+            json = String.format("{\"username\": \"%s\", \"content\": \"%s\", \"avatar_url\": \"%s\"}", username.replace("\"", "\\\""), content.replace("\"", "\\\""), avatarUrl.replace("\"", "\\\""));
+        } else {
+            json = String.format("{\"username\": \"%s\", \"content\": \"%s\"}", username.replace("\"", "\\\""), content.replace("\"", "\\\""));
+        }
         java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create(webhookUrl))
                 .header("Content-Type", "application/json")
@@ -125,7 +140,7 @@ public final class DiscordBotConnection implements AutoCloseable {
 
     public void shutdown() {
         if (shuttingDown.compareAndSet(false, true) && jda != null) {
-            jda.shutdownNow();
+            jda.shutdown();
         }
     }
 
