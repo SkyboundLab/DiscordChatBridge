@@ -21,8 +21,8 @@
     "WorldLeave": "%player% left %world%",
     "PlayerDeath": "**%%player% died**",
     "PlayerKill": "**%killer% eliminated %victim%**",
-     "GameToDiscord": "**%player%**: %message%",
-     "DiscordToGame": "%label% %username%: %message%"
+    "GameToDiscord": "**%player%**: %message%",
+    "DiscordToGame": "%label% %username%: %message%"
   },
   "Events": {
     "ServerStart": true,
