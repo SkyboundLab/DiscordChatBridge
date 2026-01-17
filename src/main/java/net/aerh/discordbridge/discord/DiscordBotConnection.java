@@ -4,12 +4,14 @@ import com.hypixel.hytale.logger.HytaleLogger;
 import net.aerh.discordbridge.config.DiscordBridgeConfig;
 import net.aerh.discordbridge.config.DiscordConfig;
 import net.aerh.discordbridge.discord.model.DiscordMessage;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
+import net.dv8tion.jda.api.webhook.WebhookClient;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.CompletableFuture;
@@ -72,6 +74,50 @@ public final class DiscordBotConnection implements AutoCloseable {
                 .queue(null, throwable -> logger.at(Level.WARNING)
                         .withCause(throwable)
                         .log("Failed to send chat message to Discord"));
+    }
+
+    public void sendEmbed(@NotNull String content, @NotNull String colorHex, @NotNull String contentType) {
+        TextChannel channel = this.bridgeChannel;
+        if (channel == null) {
+            logger.at(Level.FINE).log("Discord channel not ready; dropping embed.");
+            return;
+        }
+
+        try {
+            java.awt.Color color = java.awt.Color.decode(colorHex);
+            EmbedBuilder embed = new EmbedBuilder()
+                    .setColor(color);
+
+            if ("title".equalsIgnoreCase(contentType)) {
+                embed.setTitle(content);
+            } else {
+                embed.setDescription(content);
+            }
+
+            channel.sendMessageEmbeds(embed.build())
+                    .queue(null, throwable -> logger.at(Level.WARNING)
+                            .withCause(throwable)
+                            .log("Failed to send embed message to Discord"));
+        } catch (NumberFormatException e) {
+            logger.at(Level.WARNING).withCause(e).log("Invalid color hex: %s", colorHex);
+        }
+    }
+
+    public void sendWebhookMessage(@NotNull String webhookUrl, @NotNull String username, @NotNull String content) {
+        if (webhookUrl.isEmpty()) {
+            logger.at(Level.WARNING).log("Webhook URL is empty; cannot send webhook message.");
+            return;
+        }
+
+        try (WebhookClient webhookClient = WebhookClient.createClient(jda, webhookUrl)) {
+            webhookClient.sendMessage(content)
+                    .setUsername(username)
+                    .queue(null, throwable -> logger.at(Level.WARNING)
+                            .withCause(throwable)
+                            .log("Failed to send webhook message to Discord"));
+        } catch (Exception e) {
+            logger.at(Level.WARNING).withCause(e).log("Failed to create webhook client");
+        }
     }
 
     @Override

@@ -5,29 +5,63 @@
   "Discord": {
     "BotToken": "",
     "ChannelId": "",
+    "WebhookUrl": "",
+    "UseWebhookForChat": true,
     "PresenceMessage": "Watching the server",
     "IgnoreBotMessages": true,
     "IgnoreWebhookMessages": true,
-    "AllowMentions": false
+    "AllowMentions": true
   },
   "Messages": {
-    "ServerStart": ":white_check_mark: Server is now online!",
-    "ServerStop": ":octagonal_sign: Server is shutting down.",
-    "PlayerJoin": ":inbox_tray: %player% joined the server.",
-    "PlayerLeave": ":outbox_tray: %player% left the server.",
-    "WorldEnter": ":compass: %player% entered %world%.",
-    "WorldLeave": ":door: %player% left %world%.",
-    "PlayerDeath": ":skull: %player% died.",
-    "PlayerKill": ":crossed_swords: %killer% eliminated %victim%."
+    "ServerStart": "Server has started",
+    "ServerStop": "Server has stopped",
+    "PlayerJoin": "**%player% joined the game**",
+    "PlayerLeave": "**%player% left the game**",
+    "WorldEnter": "%player% entered %world%",
+    "WorldLeave": "%player% left %world%",
+    "PlayerDeath": "**%%player% died**",
+    "PlayerKill": "**%killer% eliminated %victim%**",
+    "GameToDiscord": "**%player%**: %message%"
   },
   "Events": {
     "ServerStart": true,
+    "ServerStartEmbed": false,
+    "ServerStartEmbedColor": "#00FF00",
+    "ServerStartEmbedContentType": "title",
+
     "ServerStop": true,
+    "ServerStopEmbed": false,
+    "ServerStopEmbedColor": "#FF0000",
+    "ServerStopEmbedContentType": "title",
+
     "PlayerJoin": true,
+    "PlayerJoinEmbed": true,
+    "PlayerJoinEmbedColor": "#00FF00",
+    "PlayerJoinEmbedContentType": "description",
+
     "PlayerLeave": true,
-    "WorldEnter": true,
-    "WorldLeave": true,
+    "PlayerLeaveEmbed": true,
+    "PlayerLeaveEmbedColor": "#ff0000",
+    "PlayerLeaveEmbedContentType": "description",
+
+    "WorldEnter": false,
+    "WorldEnterEmbed": false,
+    "WorldEnterEmbedColor": "#5865F2",
+    "WorldEnterEmbedContentType": "description",
+
+    "WorldLeave": false,
+    "WorldLeaveEmbed": false,
+    "WorldLeaveEmbedColor": "#5865F2",
+    "WorldLeaveEmbedContentType": "description",
+
     "PlayerDeath": true,
-    "PlayerKill": true
+    "PlayerDeathEmbed": false,
+    "PlayerDeathEmbedColor": "#FFA500",
+    "PlayerDeathEmbedContentType": "description",
+
+    "PlayerKill": true,
+    "PlayerKillEmbed": false,
+    "PlayerKillEmbedColor": "#FF0000",
+    "PlayerKillEmbedContentType": "description"
   }
 }

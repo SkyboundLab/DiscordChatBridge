@@ -33,7 +33,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
     private static final Pattern INBOUND_PLACEHOLDER = Pattern.compile("%(label|role|username|message)%");
     private static final String INBOUND_TEMPLATE = "%label% %role% %username%: %message%";
     private static final String DISCORD_LABEL = "[Discord]";
-    private static final String OUTBOUND_TEMPLATE = "**%player%**: %message%";
+
     private static final Color LABEL_COLOR = Color.decode("#5865F2");
     private static final Color DEFAULT_ROLE_COLOR = Color.decode("#99AAB5");
     private static final Color CONTENT_COLOR = Color.decode("#FFFFFF");
@@ -131,25 +131,31 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             return;
         }
 
-        String payload = OUTBOUND_TEMPLATE
-                .replace("%player%", event.getSender().getUsername())
-                .replace("%message%", cleaned);
+        DiscordConfig discordConfig = cfg.getDiscordConfig();
+        if (discordConfig.isUseWebhookForChat()) {
+            botConnection.sendWebhookMessage(discordConfig.getWebhookUrl(), event.getSender().getUsername(), cleaned);
+        } else {
+            MessagesConfig messages = cfg.getMessagesConfig();
+            String payload = messages.getGameToDiscord()
+                    .replace("%player%", event.getSender().getUsername())
+                    .replace("%message%", cleaned);
 
-        sendToDiscord(payload, cfg);
+            sendToDiscord(payload, cfg);
+        }
     }
 
     private void onPlayerConnect(@NotNull PlayerConnectEvent event) {
         DiscordBridgeConfig cfg = config.get();
         EventsConfig events = cfg.getEventsConfig();
         MessagesConfig messages = cfg.getMessagesConfig();
-        sendEventMessage(events.isPlayerJoin(), messages.getPlayerJoin(), "%player%", event.getPlayerRef().getUsername());
+        sendEventMessage(events.isPlayerJoin(), messages.getPlayerJoin(), events.isPlayerJoinEmbed(), events.getPlayerJoinEmbedColor(), events.getPlayerJoinEmbedContentType(), "%player%", event.getPlayerRef().getUsername());
     }
 
     private void onPlayerDisconnect(@NotNull PlayerDisconnectEvent event) {
         DiscordBridgeConfig cfg = config.get();
         EventsConfig events = cfg.getEventsConfig();
         MessagesConfig messages = cfg.getMessagesConfig();
-        sendEventMessage(events.isPlayerLeave(), messages.getPlayerLeave(), "%player%", event.getPlayerRef().getUsername());
+        sendEventMessage(events.isPlayerLeave(), messages.getPlayerLeave(), events.isPlayerLeaveEmbed(), events.getPlayerLeaveEmbedColor(), events.getPlayerLeaveEmbedContentType(), "%player%", event.getPlayerRef().getUsername());
     }
 
     private void onPlayerEnterWorld(@NotNull AddPlayerToWorldEvent event) {
@@ -165,7 +171,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         }
 
         MessagesConfig messages = cfg.getMessagesConfig();
-        sendEventMessage(true, messages.getWorldEnter(),
+        sendEventMessage(true, messages.getWorldEnter(), events.isWorldEnterEmbed(), events.getWorldEnterEmbedColor(), events.getWorldEnterEmbedContentType(),
                 "%player%", playerRef.getUsername(),
                 "%world%", event.getWorld().getName()
         );
@@ -186,7 +192,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         World world = event.getWorld();
         String worldName = world.getName();
         MessagesConfig messages = cfg.getMessagesConfig();
-        sendEventMessage(true, messages.getWorldLeave(),
+        sendEventMessage(true, messages.getWorldLeave(), events.isWorldLeaveEmbed(), events.getWorldLeaveEmbedColor(), events.getWorldLeaveEmbedContentType(),
                 "%player%", playerRef.getUsername(),
                 "%world%", worldName
         );
@@ -310,7 +316,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         EventsConfig events = cfg.getEventsConfig();
         MessagesConfig messages = cfg.getMessagesConfig();
 
-        sendEventMessage(events.isServerStart(), messages.getServerStart());
+        sendEventMessage(events.isServerStart(), messages.getServerStart(), events.isServerStartEmbed(), events.getServerStartEmbedColor(), events.getServerStartEmbedContentType());
     }
 
     private void sendServerStopMessage() {
@@ -322,17 +328,20 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         EventsConfig events = cfg.getEventsConfig();
         MessagesConfig messages = cfg.getMessagesConfig();
 
-        sendEventMessage(events.isServerStop(), messages.getServerStop());
+        sendEventMessage(events.isServerStop(), messages.getServerStop(), events.isServerStopEmbed(), events.getServerStopEmbedColor(), events.getServerStopEmbedContentType());
     }
 
     /**
      * Sends an event message to Discord if enabled.
      *
-     * @param enabled      whether this event type is enabled
-     * @param template     the message template
-     * @param replacements pairs of placeholder and value (e.g., "%player%", "Steve")
+     * @param enabled         whether this event type is enabled
+     * @param template        the message template
+     * @param embedEnabled    whether to send as embed
+     * @param embedColor      the embed color hex
+     * @param embedContentType "description" or "title"
+     * @param replacements    pairs of placeholder and value (e.g., "%player%", "Steve")
      */
-    private void sendEventMessage(boolean enabled, @NotNull String template, @NotNull String... replacements) {
+    private void sendEventMessage(boolean enabled, @NotNull String template, boolean embedEnabled, @NotNull String embedColor, @NotNull String embedContentType, @NotNull String... replacements) {
         if (!enabled) {
             return;
         }
@@ -342,7 +351,14 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             message = message.replace(replacements[i], replacements[i + 1]);
         }
 
-        sendToDiscord(message, config.get());
+        if (embedEnabled) {
+            if (botConnection == null || !botConnection.isReady()) {
+                return;
+            }
+            botConnection.sendEmbed(message, embedColor, embedContentType);
+        } else {
+            sendToDiscord(message, config.get());
+        }
     }
 
     private void ensureConfigExists(@NotNull Path dataDir) throws IOException {

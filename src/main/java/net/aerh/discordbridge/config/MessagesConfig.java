@@ -40,11 +40,15 @@ public final class MessagesConfig {
                     (cfg, value) -> cfg.playerDeath = value,
                     cfg -> cfg.playerDeath)
             .add()
-            .append(new KeyedCodec<>("PlayerKill", Codec.STRING),
-                    (cfg, value) -> cfg.playerKill = value,
-                    cfg -> cfg.playerKill)
-            .add()
-            .build();
+             .append(new KeyedCodec<>("PlayerKill", Codec.STRING),
+                     (cfg, value) -> cfg.playerKill = value,
+                     cfg -> cfg.playerKill)
+             .add()
+             .append(new KeyedCodec<>("GameToDiscord", Codec.STRING),
+                     (cfg, value) -> cfg.gameToDiscord = value,
+                     cfg -> cfg.gameToDiscord)
+             .add()
+             .build();
 
     private static final String DEFAULT_SERVER_START = ":white_check_mark: Server is now online!";
     private static final String DEFAULT_SERVER_STOP = ":octagonal_sign: Server is shutting down.";
@@ -54,6 +58,7 @@ public final class MessagesConfig {
     private static final String DEFAULT_WORLD_LEAVE = ":door: %player% left %world%.";
     private static final String DEFAULT_PLAYER_DEATH = ":skull: %player% died.";
     private static final String DEFAULT_PLAYER_KILL = ":crossed_swords: %killer% eliminated %victim%.";
+    private static final String DEFAULT_GAME_TO_DISCORD = "**%player%**: %message%";
 
     private String serverStart = DEFAULT_SERVER_START;
     private String serverStop = DEFAULT_SERVER_STOP;
@@ -63,6 +68,7 @@ public final class MessagesConfig {
     private String worldLeave = DEFAULT_WORLD_LEAVE;
     private String playerDeath = DEFAULT_PLAYER_DEATH;
     private String playerKill = DEFAULT_PLAYER_KILL;
+    private String gameToDiscord = DEFAULT_GAME_TO_DISCORD;
 
     @NotNull
     public String getServerStart() {
@@ -102,5 +108,10 @@ public final class MessagesConfig {
     @NotNull
     public String getPlayerKill() {
         return playerKill == null ? DEFAULT_PLAYER_KILL : playerKill;
+    }
+
+    @NotNull
+    public String getGameToDiscord() {
+        return gameToDiscord == null ? DEFAULT_GAME_TO_DISCORD : gameToDiscord;
     }
 }
