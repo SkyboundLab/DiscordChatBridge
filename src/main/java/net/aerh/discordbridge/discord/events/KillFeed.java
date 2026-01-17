@@ -64,12 +64,12 @@ public final class KillFeed extends EntityEventSystem<EntityStore, KillFeedEvent
         PlayerRef killer = resolveKiller(damage, store);
 
         if (killer != null) {
-            messageSender.send(events.isPlayerKill(), messages.getPlayerKill(), events.isPlayerKillEmbed(), events.getPlayerKillEmbedColor(), events.getPlayerKillEmbedContentType(),
+            messageSender.send(events.isPlayerKill(), events.getPlayerKillMessage(), events.isPlayerKillEmbed(), events.getPlayerKillEmbedColor(),
                     "%killer%", killer.getUsername(),
                     "%victim%", victim.getUsername()
             );
         } else {
-            messageSender.send(events.isPlayerDeath(), messages.getPlayerDeath(), events.isPlayerDeathEmbed(), events.getPlayerDeathEmbedColor(), events.getPlayerDeathEmbedContentType(), "%player%", victim.getUsername());
+            messageSender.send(events.isPlayerDeath(), events.getPlayerDeathMessage(), events.isPlayerDeathEmbed(), events.getPlayerDeathEmbedColor(), "%player%", victim.getUsername());
         }
     }
 
@@ -86,6 +86,6 @@ public final class KillFeed extends EntityEventSystem<EntityStore, KillFeedEvent
 
     @FunctionalInterface
     public interface MessageSender {
-        void send(boolean enabled, @NotNull String template, boolean embedEnabled, @NotNull String embedColor, @NotNull String embedContentType, @NotNull String... replacements);
+        void send(boolean enabled, @NotNull String template, boolean embedEnabled, @NotNull String embedColor, @NotNull String... replacements);
     }
 }

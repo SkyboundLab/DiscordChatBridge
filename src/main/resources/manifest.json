@@ -4,7 +4,8 @@
   "Version": "1.0.0",
   "Description": "Discord ↔ Hytale chat relay plugin",
   "Authors": [
-    { "Name": "Aerh" }
+    { "Name": "Aerh" },
+    { "Name": "Prinky" }
   ],
   "Website": "https://aerh.net/",
   "Main": "net.aerh.discordbridge.DiscordBridgePlugin",

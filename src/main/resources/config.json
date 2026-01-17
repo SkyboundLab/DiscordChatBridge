@@ -6,63 +6,74 @@
     "BotToken": "",
     "ChannelId": "",
     "WebhookUrl": "",
-    "UseWebhookForChat": true,
-    "PresenceMessage": "Watching the server",
     "IgnoreBotMessages": true,
     "IgnoreWebhookMessages": true,
     "AllowMentions": true
   },
-  "Messages": {
-    "ServerStart": "Server has started",
-    "ServerStop": "Server has stopped",
-    "PlayerJoin": "**%player% joined the game**",
-    "PlayerLeave": "**%player% left the game**",
-    "WorldEnter": "%player% entered %world%",
-    "WorldLeave": "%player% left %world%",
-    "PlayerDeath": "**%%player% died**",
-    "PlayerKill": "**%killer% eliminated %victim%**",
-    "GameToDiscord": "**%player%**: %message%",
-    "DiscordToGame": "%label% %username%: %message%"
-  },
   "Events": {
-    "ServerStart": true,
-    "ServerStartEmbed": true,
-    "ServerStartEmbedColor": "#00FF00",
-    "ServerStartEmbedContentType": "title",
-
-    "ServerStop": true,
-    "ServerStopEmbed": true,
-    "ServerStopEmbedColor": "#FF0000",
-    "ServerStopEmbedContentType": "title",
-
-    "PlayerJoin": true,
-    "PlayerJoinEmbed": true,
-    "PlayerJoinEmbedColor": "#00FF00",
-    "PlayerJoinEmbedContentType": "description",
-
-    "PlayerLeave": true,
-    "PlayerLeaveEmbed": true,
-    "PlayerLeaveEmbedColor": "#ff0000",
-    "PlayerLeaveEmbedContentType": "description",
-
-    "WorldEnter": false,
-    "WorldEnterEmbed": false,
-    "WorldEnterEmbedColor": "#5865F2",
-    "WorldEnterEmbedContentType": "description",
-
-    "WorldLeave": false,
-    "WorldLeaveEmbed": false,
-    "WorldLeaveEmbedColor": "#5865F2",
-    "WorldLeaveEmbedContentType": "description",
-
-    "PlayerDeath": true,
-    "PlayerDeathEmbed": false,
-    "PlayerDeathEmbedColor": "#FFA500",
-    "PlayerDeathEmbedContentType": "description",
-
-    "PlayerKill": true,
-    "PlayerKillEmbed": false,
-    "PlayerKillEmbedColor": "#FF0000",
-    "PlayerKillEmbedContentType": "description"
+    "ServerStart": {
+      "Enable": true,
+      "Embed": {
+        "Enable": true,
+        "Color": "#008000"
+      },
+      "Message": "Server has started"
+    },
+    "ServerStop": {
+      "Enable": true,
+      "Embed": {
+        "Enable": true,
+        "Color": "#800000"
+      },
+      "Message": "Server has stopped"
+    },
+    "PlayerJoin": {
+      "Enable": true,
+      "Embed": {
+        "Enable": true,
+        "Color": "#00FF00"
+      },
+      "Message": "**%player% joined the game**"
+    },
+    "PlayerLeave": {
+      "Enable": true,
+      "Embed": {
+        "Enable": true,
+        "Color": "#FF0000"
+      },
+      "Message": "**%player% left the game**"
+    },
+    "WorldEnter": {
+      "Enable": false,
+      "Embed": {
+        "Enable": false,
+        "Color": "#5865F2"
+      },
+      "Message": "%player% entered %world%"
+    },
+    "WorldLeave": {
+      "Enable": false,
+      "Embed": {
+        "Enable": false,
+        "Color": "#5865F2"
+      },
+      "Message": "%player% left %world%"
+    },
+    "PlayerDeath": {
+      "Enable": true,
+      "Embed": {
+        "Enable": false,
+        "Color": "#FFA500"
+      },
+      "Message": "**%player% died**"
+    },
+    "PlayerKill": {
+      "Enable": true,
+      "Embed": {
+        "Enable": false,
+        "Color": "#FF0000"
+      },
+      "Message": "**%killer% eliminated %victim%**"
+    }
   }
 }

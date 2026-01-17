@@ -16,15 +16,11 @@ public final class DiscordConfig {
                     (cfg, value) -> cfg.botToken = value,
                     cfg -> cfg.botToken)
             .add()
-            .append(new KeyedCodec<>("ChannelId", Codec.STRING),
-                    (cfg, value) -> cfg.channelId = value,
-                    cfg -> cfg.channelId)
-            .add()
-            .append(new KeyedCodec<>("PresenceMessage", Codec.STRING),
-                    (cfg, value) -> cfg.presenceMessage = value,
-                    cfg -> cfg.presenceMessage)
-            .add()
-            .append(new KeyedCodec<>("IgnoreBotMessages", Codec.BOOLEAN),
+             .append(new KeyedCodec<>("ChannelId", Codec.STRING),
+                     (cfg, value) -> cfg.channelId = value,
+                     cfg -> cfg.channelId)
+             .add()
+             .append(new KeyedCodec<>("IgnoreBotMessages", Codec.BOOLEAN),
                     (cfg, value) -> cfg.ignoreBotMessages = value,
                     cfg -> cfg.ignoreBotMessages)
             .add()
@@ -36,26 +32,20 @@ public final class DiscordConfig {
                      (cfg, value) -> cfg.allowMentions = value,
                      cfg -> cfg.allowMentions)
              .add()
-             .append(new KeyedCodec<>("WebhookUrl", Codec.STRING),
-                     (cfg, value) -> cfg.webhookUrl = value,
-                     cfg -> cfg.webhookUrl)
-             .add()
-             .append(new KeyedCodec<>("UseWebhookForChat", Codec.BOOLEAN),
-                     (cfg, value) -> cfg.useWebhookForChat = value,
-                     cfg -> cfg.useWebhookForChat)
-             .add()
+              .append(new KeyedCodec<>("WebhookUrl", Codec.STRING),
+                      (cfg, value) -> cfg.webhookUrl = value,
+                      cfg -> cfg.webhookUrl)
+              .add()
              .build();
 
-    private static final String DEFAULT_PRESENCE = "Watching the server";
+
 
     private String botToken = "";
     private String channelId = "";
-    private String presenceMessage = DEFAULT_PRESENCE;
     private boolean ignoreBotMessages = true;
     private boolean ignoreWebhookMessages = true;
     private boolean allowMentions = false;
     private String webhookUrl = "";
-    private boolean useWebhookForChat = false;
 
     @NotNull
     public String getBotToken() {
@@ -65,13 +55,6 @@ public final class DiscordConfig {
     @NotNull
     public String getChannelId() {
         return channelId == null ? "" : channelId;
-    }
-
-    @NotNull
-    public String getPresenceMessage() {
-        return presenceMessage == null || presenceMessage.isBlank()
-                ? DEFAULT_PRESENCE
-                : presenceMessage;
     }
 
     public boolean isIgnoreBotMessages() {
@@ -89,10 +72,6 @@ public final class DiscordConfig {
     @NotNull
     public String getWebhookUrl() {
         return webhookUrl == null ? "" : webhookUrl;
-    }
-
-    public boolean isUseWebhookForChat() {
-        return useWebhookForChat;
     }
 
     /**

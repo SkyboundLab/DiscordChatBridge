@@ -47,7 +47,6 @@ public final class DiscordBotConnection implements AutoCloseable {
             JDABuilder builder = JDABuilder.createDefault(discordConfig.getBotToken())
                     .setMemberCachePolicy(MemberCachePolicy.NONE)
                     .enableIntents(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT)
-                    .setActivity(Activity.playing(discordConfig.getPresenceMessage()))
                     .addEventListeners(listener);
             this.jda = builder.build();
         } catch (Throwable throwable) {
@@ -75,7 +74,7 @@ public final class DiscordBotConnection implements AutoCloseable {
                         .log("Failed to send chat message to Discord"));
     }
 
-    public void sendEmbed(@NotNull String content, @NotNull String colorHex, @NotNull String contentType) {
+    public void sendEmbed(@NotNull String content, @NotNull String colorHex) {
         TextChannel channel = this.bridgeChannel;
         if (channel == null) {
             logger.at(Level.FINE).log("Discord channel not ready; dropping embed.");
@@ -85,13 +84,8 @@ public final class DiscordBotConnection implements AutoCloseable {
         try {
             java.awt.Color color = java.awt.Color.decode(colorHex);
             EmbedBuilder embed = new EmbedBuilder()
-                    .setColor(color);
-
-            if ("title".equalsIgnoreCase(contentType)) {
-                embed.setTitle(content);
-            } else {
-                embed.setDescription(content);
-            }
+                    .setColor(color)
+                    .setDescription(content);
 
             channel.sendMessageEmbeds(embed.build())
                     .queue(null, throwable -> logger.at(Level.WARNING)

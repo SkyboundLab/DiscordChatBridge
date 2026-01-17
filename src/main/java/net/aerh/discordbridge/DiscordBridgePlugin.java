@@ -30,8 +30,7 @@ import java.util.logging.Level;
 
 public final class DiscordBridgePlugin extends JavaPlugin {
 
-    private static final Pattern INBOUND_PLACEHOLDER = Pattern.compile("%(label|role|username|message)%");
-    private static final String INBOUND_TEMPLATE = "%label% %role% %username%: %message%";
+    private static final Pattern INBOUND_PLACEHOLDER = Pattern.compile("%(label|username|message)%");
     private static final String DISCORD_LABEL = "[Discord]";
 
     private static final Color LABEL_COLOR = Color.decode("#5865F2");
@@ -132,30 +131,26 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         }
 
         DiscordConfig discordConfig = cfg.getDiscordConfig();
-        if (discordConfig.isUseWebhookForChat()) {
-            botConnection.sendWebhookMessage(discordConfig.getWebhookUrl(), event.getSender().getUsername(), cleaned);
-        } else {
-            MessagesConfig messages = cfg.getMessagesConfig();
-            String payload = messages.getGameToDiscord()
-                    .replace("%player%", event.getSender().getUsername())
-                    .replace("%message%", cleaned);
-
-            sendToDiscord(payload, cfg);
+        String webhookUrl = discordConfig.getWebhookUrl();
+        if (webhookUrl.isEmpty()) {
+            getLogger().at(Level.WARNING).log("Webhook URL not configured; skipping chat message to Discord.");
+            return;
         }
+        botConnection.sendWebhookMessage(webhookUrl, event.getSender().getUsername(), cleaned);
     }
 
     private void onPlayerConnect(@NotNull PlayerConnectEvent event) {
         DiscordBridgeConfig cfg = config.get();
         EventsConfig events = cfg.getEventsConfig();
         MessagesConfig messages = cfg.getMessagesConfig();
-        sendEventMessage(events.isPlayerJoin(), messages.getPlayerJoin(), events.isPlayerJoinEmbed(), events.getPlayerJoinEmbedColor(), events.getPlayerJoinEmbedContentType(), "%player%", event.getPlayerRef().getUsername());
+        sendEventMessage(events.isPlayerJoin(), events.getPlayerJoinMessage(), events.isPlayerJoinEmbed(), events.getPlayerJoinEmbedColor(), "%player%", event.getPlayerRef().getUsername());
     }
 
     private void onPlayerDisconnect(@NotNull PlayerDisconnectEvent event) {
         DiscordBridgeConfig cfg = config.get();
         EventsConfig events = cfg.getEventsConfig();
         MessagesConfig messages = cfg.getMessagesConfig();
-        sendEventMessage(events.isPlayerLeave(), messages.getPlayerLeave(), events.isPlayerLeaveEmbed(), events.getPlayerLeaveEmbedColor(), events.getPlayerLeaveEmbedContentType(), "%player%", event.getPlayerRef().getUsername());
+        sendEventMessage(events.isPlayerLeave(), events.getPlayerLeaveMessage(), events.isPlayerLeaveEmbed(), events.getPlayerLeaveEmbedColor(), "%player%", event.getPlayerRef().getUsername());
     }
 
     private void onPlayerEnterWorld(@NotNull AddPlayerToWorldEvent event) {
@@ -170,8 +165,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             return;
         }
 
-        MessagesConfig messages = cfg.getMessagesConfig();
-        sendEventMessage(true, messages.getWorldEnter(), events.isWorldEnterEmbed(), events.getWorldEnterEmbedColor(), events.getWorldEnterEmbedContentType(),
+        sendEventMessage(true, events.getWorldEnterMessage(), events.isWorldEnterEmbed(), events.getWorldEnterEmbedColor(),
                 "%player%", playerRef.getUsername(),
                 "%world%", event.getWorld().getName()
         );
@@ -191,8 +185,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
 
         World world = event.getWorld();
         String worldName = world.getName();
-        MessagesConfig messages = cfg.getMessagesConfig();
-        sendEventMessage(true, messages.getWorldLeave(), events.isWorldLeaveEmbed(), events.getWorldLeaveEmbedColor(), events.getWorldLeaveEmbedContentType(),
+        sendEventMessage(true, events.getWorldLeaveMessage(), events.isWorldLeaveEmbed(), events.getWorldLeaveEmbedColor(),
                 "%player%", playerRef.getUsername(),
                 "%world%", worldName
         );
@@ -218,12 +211,13 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             return;
         }
 
-        Message formatted = buildInboundMessage(message, content, cfg.getMessagesConfig().getDiscordToGame());
+        Message formatted = buildInboundMessage(message, content);
         universe.sendMessage(formatted);
     }
 
     @NotNull
-    private static Message buildInboundMessage(@NotNull DiscordMessage discordMessage, @NotNull String content, @NotNull String template) {
+    private static Message buildInboundMessage(@NotNull DiscordMessage discordMessage, @NotNull String content) {
+        String template = "%label% %username%: %message%";
 
         Message root = Message.empty();
         Matcher matcher = INBOUND_PLACEHOLDER.matcher(template);
@@ -237,7 +231,6 @@ public final class DiscordBridgePlugin extends JavaPlugin {
 
             switch (matcher.group(1)) {
                 case "label" -> appendLabel(root);
-                case "role" -> appendRole(root, discordMessage);
                 case "username" -> appendUsername(root, discordMessage);
                 case "message" -> {
                     appendMessageContent(root, content);
@@ -263,15 +256,6 @@ public final class DiscordBridgePlugin extends JavaPlugin {
 
     private static void appendLabel(@NotNull Message root) {
         appendTextSegment(root, DISCORD_LABEL, LABEL_COLOR);
-    }
-
-    private static void appendRole(@NotNull Message root, @NotNull DiscordMessage discordMessage) {
-        if (discordMessage.topRoleName() == null || discordMessage.topRoleName().isBlank()) {
-            return;
-        }
-
-        Color color = discordMessage.roleColor() != null ? discordMessage.roleColor() : DEFAULT_ROLE_COLOR;
-        appendTextSegment(root, "[" + discordMessage.topRoleName() + "]", color);
     }
 
     private static void appendUsername(@NotNull Message root, @NotNull DiscordMessage discordMessage) {
@@ -315,7 +299,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         EventsConfig events = cfg.getEventsConfig();
         MessagesConfig messages = cfg.getMessagesConfig();
 
-        sendEventMessage(events.isServerStart(), messages.getServerStart(), events.isServerStartEmbed(), events.getServerStartEmbedColor(), events.getServerStartEmbedContentType());
+        sendEventMessage(events.isServerStart(), events.getServerStartMessage(), events.isServerStartEmbed(), events.getServerStartEmbedColor());
     }
 
     private void sendServerStopMessage() {
@@ -327,7 +311,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         EventsConfig events = cfg.getEventsConfig();
         MessagesConfig messages = cfg.getMessagesConfig();
 
-        sendEventMessage(events.isServerStop(), messages.getServerStop(), events.isServerStopEmbed(), events.getServerStopEmbedColor(), events.getServerStopEmbedContentType());
+        sendEventMessage(events.isServerStop(), events.getServerStopMessage(), events.isServerStopEmbed(), events.getServerStopEmbedColor());
     }
 
     /**
@@ -337,10 +321,9 @@ public final class DiscordBridgePlugin extends JavaPlugin {
      * @param template        the message template
      * @param embedEnabled    whether to send as embed
      * @param embedColor      the embed color hex
-     * @param embedContentType "description" or "title"
      * @param replacements    pairs of placeholder and value (e.g., "%player%", "Steve")
      */
-    private void sendEventMessage(boolean enabled, @NotNull String template, boolean embedEnabled, @NotNull String embedColor, @NotNull String embedContentType, @NotNull String... replacements) {
+    private void sendEventMessage(boolean enabled, @NotNull String template, boolean embedEnabled, @NotNull String embedColor, @NotNull String... replacements) {
         if (!enabled) {
             return;
         }
@@ -354,7 +337,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             if (botConnection == null || !botConnection.isReady()) {
                 return;
             }
-            botConnection.sendEmbed(message, embedColor, embedContentType);
+            botConnection.sendEmbed(message, embedColor);
         } else {
             sendToDiscord(message, config.get());
         }

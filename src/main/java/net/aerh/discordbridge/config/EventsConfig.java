@@ -10,314 +10,273 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class EventsConfig {
 
+    private static final class EmbedSettings {
+        public static final BuilderCodec<EmbedSettings> CODEC = BuilderCodec
+                .builder(EmbedSettings.class, EmbedSettings::new)
+                .append(new KeyedCodec<>("Enable", Codec.BOOLEAN),
+                        (cfg, value) -> cfg.enable = value,
+                        cfg -> cfg.enable)
+                .add()
+                .append(new KeyedCodec<>("Color", Codec.STRING),
+                        (cfg, value) -> cfg.color = value,
+                        cfg -> cfg.color)
+                .add()
+                .build();
+
+        private boolean enable;
+        private String color;
+
+        public EmbedSettings() {
+            this.enable = false;
+            this.color = "#5865F2";
+        }
+
+        public boolean isEnable() {
+            return enable;
+        }
+
+        @NotNull
+        public String getColor() {
+            return color != null ? color : "#5865F2";
+        }
+    }
+
+    private static final class EventSettings {
+        public static final BuilderCodec<EventSettings> CODEC = BuilderCodec
+                .builder(EventSettings.class, EventSettings::new)
+                .append(new KeyedCodec<>("Enable", Codec.BOOLEAN),
+                        (cfg, value) -> cfg.enable = value,
+                        cfg -> cfg.enable)
+                .add()
+                .append(new KeyedCodec<>("Embed", EmbedSettings.CODEC),
+                        (cfg, value) -> cfg.embed = value,
+                        cfg -> cfg.embed)
+                .add()
+                .append(new KeyedCodec<>("Message", Codec.STRING),
+                        (cfg, value) -> cfg.message = value,
+                        cfg -> cfg.message)
+                .add()
+                .build();
+
+        private boolean enable;
+        private EmbedSettings embed;
+        private String message;
+
+        public EventSettings() {
+            this.enable = false;
+            this.embed = new EmbedSettings();
+            this.message = "";
+        }
+
+        public EventSettings(boolean enable, boolean embedEnable, String embedColor, String message) {
+            this.enable = enable;
+            this.embed = new EmbedSettings();
+            this.embed.enable = embedEnable;
+            this.embed.color = embedColor;
+            this.message = message;
+        }
+
+        public boolean isEnable() {
+            return enable;
+        }
+
+        @NotNull
+        public EmbedSettings getEmbed() {
+            return embed;
+        }
+
+        @NotNull
+        public String getMessage() {
+            return message != null ? message : "";
+        }
+    }
+
     public static final BuilderCodec<EventsConfig> CODEC = BuilderCodec
             .builder(EventsConfig.class, EventsConfig::new)
-            .append(new KeyedCodec<>("ServerStart", Codec.BOOLEAN),
+            .append(new KeyedCodec<>("ServerStart", EventSettings.CODEC),
                     (cfg, value) -> cfg.serverStart = value,
                     cfg -> cfg.serverStart)
             .add()
-            .append(new KeyedCodec<>("ServerStop", Codec.BOOLEAN),
+            .append(new KeyedCodec<>("ServerStop", EventSettings.CODEC),
                     (cfg, value) -> cfg.serverStop = value,
                     cfg -> cfg.serverStop)
             .add()
-            .append(new KeyedCodec<>("PlayerJoin", Codec.BOOLEAN),
+            .append(new KeyedCodec<>("PlayerJoin", EventSettings.CODEC),
                     (cfg, value) -> cfg.playerJoin = value,
                     cfg -> cfg.playerJoin)
             .add()
-            .append(new KeyedCodec<>("PlayerLeave", Codec.BOOLEAN),
+            .append(new KeyedCodec<>("PlayerLeave", EventSettings.CODEC),
                     (cfg, value) -> cfg.playerLeave = value,
                     cfg -> cfg.playerLeave)
             .add()
-            .append(new KeyedCodec<>("WorldEnter", Codec.BOOLEAN),
+            .append(new KeyedCodec<>("WorldEnter", EventSettings.CODEC),
                     (cfg, value) -> cfg.worldEnter = value,
                     cfg -> cfg.worldEnter)
             .add()
-            .append(new KeyedCodec<>("WorldLeave", Codec.BOOLEAN),
+            .append(new KeyedCodec<>("WorldLeave", EventSettings.CODEC),
                     (cfg, value) -> cfg.worldLeave = value,
                     cfg -> cfg.worldLeave)
             .add()
-            .append(new KeyedCodec<>("PlayerDeath", Codec.BOOLEAN),
+            .append(new KeyedCodec<>("PlayerDeath", EventSettings.CODEC),
                     (cfg, value) -> cfg.playerDeath = value,
                     cfg -> cfg.playerDeath)
             .add()
-             .append(new KeyedCodec<>("PlayerKill", Codec.BOOLEAN),
-                     (cfg, value) -> cfg.playerKill = value,
-                     cfg -> cfg.playerKill)
-             .add()
-             .append(new KeyedCodec<>("ServerStartEmbed", Codec.BOOLEAN),
-                     (cfg, value) -> cfg.serverStartEmbed = value,
-                     cfg -> cfg.serverStartEmbed)
-             .add()
-             .append(new KeyedCodec<>("ServerStartEmbedColor", Codec.STRING),
-                     (cfg, value) -> cfg.serverStartEmbedColor = value,
-                     cfg -> cfg.serverStartEmbedColor)
-             .add()
-             .append(new KeyedCodec<>("ServerStopEmbed", Codec.BOOLEAN),
-                     (cfg, value) -> cfg.serverStopEmbed = value,
-                     cfg -> cfg.serverStopEmbed)
-             .add()
-             .append(new KeyedCodec<>("ServerStopEmbedColor", Codec.STRING),
-                     (cfg, value) -> cfg.serverStopEmbedColor = value,
-                     cfg -> cfg.serverStopEmbedColor)
-             .add()
-             .append(new KeyedCodec<>("PlayerJoinEmbed", Codec.BOOLEAN),
-                     (cfg, value) -> cfg.playerJoinEmbed = value,
-                     cfg -> cfg.playerJoinEmbed)
-             .add()
-             .append(new KeyedCodec<>("PlayerJoinEmbedColor", Codec.STRING),
-                     (cfg, value) -> cfg.playerJoinEmbedColor = value,
-                     cfg -> cfg.playerJoinEmbedColor)
-             .add()
-             .append(new KeyedCodec<>("PlayerLeaveEmbed", Codec.BOOLEAN),
-                     (cfg, value) -> cfg.playerLeaveEmbed = value,
-                     cfg -> cfg.playerLeaveEmbed)
-             .add()
-             .append(new KeyedCodec<>("PlayerLeaveEmbedColor", Codec.STRING),
-                     (cfg, value) -> cfg.playerLeaveEmbedColor = value,
-                     cfg -> cfg.playerLeaveEmbedColor)
-             .add()
-             .append(new KeyedCodec<>("WorldEnterEmbed", Codec.BOOLEAN),
-                     (cfg, value) -> cfg.worldEnterEmbed = value,
-                     cfg -> cfg.worldEnterEmbed)
-             .add()
-             .append(new KeyedCodec<>("WorldEnterEmbedColor", Codec.STRING),
-                     (cfg, value) -> cfg.worldEnterEmbedColor = value,
-                     cfg -> cfg.worldEnterEmbedColor)
-             .add()
-             .append(new KeyedCodec<>("WorldLeaveEmbed", Codec.BOOLEAN),
-                     (cfg, value) -> cfg.worldLeaveEmbed = value,
-                     cfg -> cfg.worldLeaveEmbed)
-             .add()
-             .append(new KeyedCodec<>("WorldLeaveEmbedColor", Codec.STRING),
-                     (cfg, value) -> cfg.worldLeaveEmbedColor = value,
-                     cfg -> cfg.worldLeaveEmbedColor)
-             .add()
-             .append(new KeyedCodec<>("PlayerDeathEmbed", Codec.BOOLEAN),
-                     (cfg, value) -> cfg.playerDeathEmbed = value,
-                     cfg -> cfg.playerDeathEmbed)
-             .add()
-             .append(new KeyedCodec<>("PlayerDeathEmbedColor", Codec.STRING),
-                     (cfg, value) -> cfg.playerDeathEmbedColor = value,
-                     cfg -> cfg.playerDeathEmbedColor)
-             .add()
-             .append(new KeyedCodec<>("PlayerKillEmbed", Codec.BOOLEAN),
-                     (cfg, value) -> cfg.playerKillEmbed = value,
-                     cfg -> cfg.playerKillEmbed)
-             .add()
-             .append(new KeyedCodec<>("PlayerKillEmbedColor", Codec.STRING),
-                     (cfg, value) -> cfg.playerKillEmbedColor = value,
-                     cfg -> cfg.playerKillEmbedColor)
-             .add()
-             .append(new KeyedCodec<>("ServerStartEmbedContentType", Codec.STRING),
-                     (cfg, value) -> cfg.serverStartEmbedContentType = value,
-                     cfg -> cfg.serverStartEmbedContentType)
-             .add()
-             .append(new KeyedCodec<>("ServerStopEmbedContentType", Codec.STRING),
-                     (cfg, value) -> cfg.serverStopEmbedContentType = value,
-                     cfg -> cfg.serverStopEmbedContentType)
-             .add()
-             .append(new KeyedCodec<>("PlayerJoinEmbedContentType", Codec.STRING),
-                     (cfg, value) -> cfg.playerJoinEmbedContentType = value,
-                     cfg -> cfg.playerJoinEmbedContentType)
-             .add()
-             .append(new KeyedCodec<>("PlayerLeaveEmbedContentType", Codec.STRING),
-                     (cfg, value) -> cfg.playerLeaveEmbedContentType = value,
-                     cfg -> cfg.playerLeaveEmbedContentType)
-             .add()
-             .append(new KeyedCodec<>("WorldEnterEmbedContentType", Codec.STRING),
-                     (cfg, value) -> cfg.worldEnterEmbedContentType = value,
-                     cfg -> cfg.worldEnterEmbedContentType)
-             .add()
-             .append(new KeyedCodec<>("WorldLeaveEmbedContentType", Codec.STRING),
-                     (cfg, value) -> cfg.worldLeaveEmbedContentType = value,
-                     cfg -> cfg.worldLeaveEmbedContentType)
-             .add()
-             .append(new KeyedCodec<>("PlayerDeathEmbedContentType", Codec.STRING),
-                     (cfg, value) -> cfg.playerDeathEmbedContentType = value,
-                     cfg -> cfg.playerDeathEmbedContentType)
-             .add()
-             .append(new KeyedCodec<>("PlayerKillEmbedContentType", Codec.STRING),
-                     (cfg, value) -> cfg.playerKillEmbedContentType = value,
-                     cfg -> cfg.playerKillEmbedContentType)
-             .add()
-             .build();
+            .append(new KeyedCodec<>("PlayerKill", EventSettings.CODEC),
+                    (cfg, value) -> cfg.playerKill = value,
+                    cfg -> cfg.playerKill)
+            .add()
+            .build();
 
-    private boolean serverStart = true;
-    private boolean serverStop = true;
-    private boolean playerJoin = true;
-    private boolean playerLeave = true;
-    private boolean worldEnter = true;
-    private boolean worldLeave = true;
-    private boolean playerDeath = true;
-    private boolean playerKill = true;
-
-    private boolean serverStartEmbed = false;
-    private String serverStartEmbedColor = "#00FF00";
-    private boolean serverStopEmbed = false;
-    private String serverStopEmbedColor = "#FF0000";
-    private boolean playerJoinEmbed = false;
-    private String playerJoinEmbedColor = "#5865F2";
-    private boolean playerLeaveEmbed = false;
-    private String playerLeaveEmbedColor = "#5865F2";
-    private boolean worldEnterEmbed = false;
-    private String worldEnterEmbedColor = "#5865F2";
-    private boolean worldLeaveEmbed = false;
-    private String worldLeaveEmbedColor = "#5865F2";
-    private boolean playerDeathEmbed = false;
-    private String playerDeathEmbedColor = "#FFA500";
-    private boolean playerKillEmbed = false;
-    private String playerKillEmbedColor = "#FF0000";
-
-    private String serverStartEmbedContentType = "description";
-    private String serverStopEmbedContentType = "description";
-    private String playerJoinEmbedContentType = "description";
-    private String playerLeaveEmbedContentType = "description";
-    private String worldEnterEmbedContentType = "description";
-    private String worldLeaveEmbedContentType = "description";
-    private String playerDeathEmbedContentType = "description";
-    private String playerKillEmbedContentType = "description";
+    private EventSettings serverStart = new EventSettings(true, true, "#008000", "Server has started");
+    private EventSettings serverStop = new EventSettings(true, true, "#800000", "Server has stopped");
+    private EventSettings playerJoin = new EventSettings(true, true, "#00FF00", "**%player% joined the game**");
+    private EventSettings playerLeave = new EventSettings(true, true, "#FF0000", "**%player% left the game**");
+    private EventSettings worldEnter = new EventSettings(false, false, "#5865F2", "%player% entered %world%");
+    private EventSettings worldLeave = new EventSettings(false, false, "#5865F2", "%player% left %world%");
+    private EventSettings playerDeath = new EventSettings(true, false, "#FFA500", "**%player% died**");
+    private EventSettings playerKill = new EventSettings(true, false, "#FF0000", "**%killer% eliminated %victim%**");
 
     public boolean isServerStart() {
-        return serverStart;
+        return serverStart.isEnable();
     }
 
     public boolean isServerStop() {
-        return serverStop;
+        return serverStop.isEnable();
     }
 
     public boolean isPlayerJoin() {
-        return playerJoin;
+        return playerJoin.isEnable();
     }
 
     public boolean isPlayerLeave() {
-        return playerLeave;
+        return playerLeave.isEnable();
     }
 
     public boolean isWorldEnter() {
-        return worldEnter;
+        return worldEnter.isEnable();
     }
 
     public boolean isWorldLeave() {
-        return worldLeave;
+        return worldLeave.isEnable();
     }
 
     public boolean isPlayerDeath() {
-        return playerDeath;
+        return playerDeath.isEnable();
     }
 
     public boolean isPlayerKill() {
-        return playerKill;
+        return playerKill.isEnable();
     }
 
     public boolean isServerStartEmbed() {
-        return serverStartEmbed;
+        return serverStart.getEmbed().isEnable();
     }
 
     @NotNull
     public String getServerStartEmbedColor() {
-        return serverStartEmbedColor != null ? serverStartEmbedColor : "#00FF00";
+        return serverStart.getEmbed().getColor();
     }
 
     public boolean isServerStopEmbed() {
-        return serverStopEmbed;
+        return serverStop.getEmbed().isEnable();
     }
 
     @NotNull
     public String getServerStopEmbedColor() {
-        return serverStopEmbedColor != null ? serverStopEmbedColor : "#FF0000";
+        return serverStop.getEmbed().getColor();
     }
 
     public boolean isPlayerJoinEmbed() {
-        return playerJoinEmbed;
+        return playerJoin.getEmbed().isEnable();
     }
 
     @NotNull
     public String getPlayerJoinEmbedColor() {
-        return playerJoinEmbedColor != null ? playerJoinEmbedColor : "#5865F2";
+        return playerJoin.getEmbed().getColor();
     }
 
     public boolean isPlayerLeaveEmbed() {
-        return playerLeaveEmbed;
+        return playerLeave.getEmbed().isEnable();
     }
 
     @NotNull
     public String getPlayerLeaveEmbedColor() {
-        return playerLeaveEmbedColor != null ? playerLeaveEmbedColor : "#5865F2";
+        return playerLeave.getEmbed().getColor();
     }
 
     public boolean isWorldEnterEmbed() {
-        return worldEnterEmbed;
+        return worldEnter.getEmbed().isEnable();
     }
 
     @NotNull
     public String getWorldEnterEmbedColor() {
-        return worldEnterEmbedColor != null ? worldEnterEmbedColor : "#5865F2";
+        return worldEnter.getEmbed().getColor();
     }
 
     public boolean isWorldLeaveEmbed() {
-        return worldLeaveEmbed;
+        return worldLeave.getEmbed().isEnable();
     }
 
     @NotNull
     public String getWorldLeaveEmbedColor() {
-        return worldLeaveEmbedColor != null ? worldLeaveEmbedColor : "#5865F2";
+        return worldLeave.getEmbed().getColor();
     }
 
     public boolean isPlayerDeathEmbed() {
-        return playerDeathEmbed;
+        return playerDeath.getEmbed().isEnable();
     }
 
     @NotNull
     public String getPlayerDeathEmbedColor() {
-        return playerDeathEmbedColor != null ? playerDeathEmbedColor : "#FFA500";
+        return playerDeath.getEmbed().getColor();
     }
 
     public boolean isPlayerKillEmbed() {
-        return playerKillEmbed;
+        return playerKill.getEmbed().isEnable();
     }
 
     @NotNull
     public String getPlayerKillEmbedColor() {
-        return playerKillEmbedColor != null ? playerKillEmbedColor : "#FF0000";
+        return playerKill.getEmbed().getColor();
     }
 
     @NotNull
-    public String getServerStartEmbedContentType() {
-        return serverStartEmbedContentType != null ? serverStartEmbedContentType : "description";
+    public String getServerStartMessage() {
+        return serverStart.getMessage();
     }
 
     @NotNull
-    public String getServerStopEmbedContentType() {
-        return serverStopEmbedContentType != null ? serverStopEmbedContentType : "description";
+    public String getServerStopMessage() {
+        return serverStop.getMessage();
     }
 
     @NotNull
-    public String getPlayerJoinEmbedContentType() {
-        return playerJoinEmbedContentType != null ? playerJoinEmbedContentType : "description";
+    public String getPlayerJoinMessage() {
+        return playerJoin.getMessage();
     }
 
     @NotNull
-    public String getPlayerLeaveEmbedContentType() {
-        return playerLeaveEmbedContentType != null ? playerLeaveEmbedContentType : "description";
+    public String getPlayerLeaveMessage() {
+        return playerLeave.getMessage();
     }
 
     @NotNull
-    public String getWorldEnterEmbedContentType() {
-        return worldEnterEmbedContentType != null ? worldEnterEmbedContentType : "description";
+    public String getWorldEnterMessage() {
+        return worldEnter.getMessage();
     }
 
     @NotNull
-    public String getWorldLeaveEmbedContentType() {
-        return worldLeaveEmbedContentType != null ? worldLeaveEmbedContentType : "description";
+    public String getWorldLeaveMessage() {
+        return worldLeave.getMessage();
     }
 
     @NotNull
-    public String getPlayerDeathEmbedContentType() {
-        return playerDeathEmbedContentType != null ? playerDeathEmbedContentType : "description";
+    public String getPlayerDeathMessage() {
+        return playerDeath.getMessage();
     }
 
     @NotNull
-    public String getPlayerKillEmbedContentType() {
-        return playerKillEmbedContentType != null ? playerKillEmbedContentType : "description";
+    public String getPlayerKillMessage() {
+        return playerKill.getMessage();
     }
 }
