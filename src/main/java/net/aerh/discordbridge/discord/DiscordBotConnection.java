@@ -11,7 +11,6 @@ import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
-import net.dv8tion.jda.api.webhook.WebhookClient;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.CompletableFuture;
@@ -109,15 +108,20 @@ public final class DiscordBotConnection implements AutoCloseable {
             return;
         }
 
-        try (WebhookClient webhookClient = WebhookClient.createClient(jda, webhookUrl)) {
-            webhookClient.sendMessage(content)
-                    .setUsername(username)
-                    .queue(null, throwable -> logger.at(Level.WARNING)
-                            .withCause(throwable)
-                            .log("Failed to send webhook message to Discord"));
-        } catch (Exception e) {
-            logger.at(Level.WARNING).withCause(e).log("Failed to create webhook client");
-        }
+        // Send via HTTP POST to webhook URL
+        java.net.http.HttpClient httpClient = java.net.http.HttpClient.newHttpClient();
+        String json = String.format("{\"username\": \"%s\", \"content\": \"%s\"}", username.replace("\"", "\\\""), content.replace("\"", "\\\""));
+        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(webhookUrl))
+                .header("Content-Type", "application/json")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        httpClient.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.discarding())
+                .exceptionally(throwable -> {
+                    logger.at(Level.WARNING).withCause(throwable).log("Failed to send webhook message to Discord");
+                    return null;
+                });
     }
 
     @Override

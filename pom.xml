@@ -19,7 +19,8 @@
             <groupId>com.hypixel.hytale</groupId>
             <artifactId>HytaleServer-parent</artifactId>
             <version>1.0-SNAPSHOT</version>
-            <scope>provided</scope>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/HytaleServer.jar</systemPath>
         </dependency>
 
         <dependency>

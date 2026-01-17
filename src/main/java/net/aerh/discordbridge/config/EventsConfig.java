@@ -3,6 +3,7 @@ package net.aerh.discordbridge.config;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Configuration for event broadcast toggles.
