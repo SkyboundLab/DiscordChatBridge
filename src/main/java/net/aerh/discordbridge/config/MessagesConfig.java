@@ -48,6 +48,10 @@ public final class MessagesConfig {
                      (cfg, value) -> cfg.gameToDiscord = value,
                      cfg -> cfg.gameToDiscord)
              .add()
+             .append(new KeyedCodec<>("DiscordToGame", Codec.STRING),
+                     (cfg, value) -> cfg.discordToGame = value,
+                     cfg -> cfg.discordToGame)
+             .add()
              .build();
 
     private static final String DEFAULT_SERVER_START = ":white_check_mark: Server is now online!";
@@ -59,6 +63,7 @@ public final class MessagesConfig {
     private static final String DEFAULT_PLAYER_DEATH = ":skull: %player% died.";
     private static final String DEFAULT_PLAYER_KILL = ":crossed_swords: %killer% eliminated %victim%.";
     private static final String DEFAULT_GAME_TO_DISCORD = "**%player%**: %message%";
+    private static final String DEFAULT_DISCORD_TO_GAME = "%label% %role% %username%: %message%";
 
     private String serverStart = DEFAULT_SERVER_START;
     private String serverStop = DEFAULT_SERVER_STOP;
@@ -69,6 +74,7 @@ public final class MessagesConfig {
     private String playerDeath = DEFAULT_PLAYER_DEATH;
     private String playerKill = DEFAULT_PLAYER_KILL;
     private String gameToDiscord = DEFAULT_GAME_TO_DISCORD;
+    private String discordToGame = DEFAULT_DISCORD_TO_GAME;
 
     @NotNull
     public String getServerStart() {
@@ -113,5 +119,10 @@ public final class MessagesConfig {
     @NotNull
     public String getGameToDiscord() {
         return gameToDiscord == null ? DEFAULT_GAME_TO_DISCORD : gameToDiscord;
+    }
+
+    @NotNull
+    public String getDiscordToGame() {
+        return discordToGame == null ? DEFAULT_DISCORD_TO_GAME : discordToGame;
     }
 }

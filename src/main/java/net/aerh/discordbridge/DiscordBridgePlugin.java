@@ -218,13 +218,12 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             return;
         }
 
-        Message formatted = buildInboundMessage(message, content);
+        Message formatted = buildInboundMessage(message, content, cfg.getMessagesConfig().getDiscordToGame());
         universe.sendMessage(formatted);
     }
 
     @NotNull
-    private static Message buildInboundMessage(@NotNull DiscordMessage discordMessage, @NotNull String content) {
-        String template = INBOUND_TEMPLATE;
+    private static Message buildInboundMessage(@NotNull DiscordMessage discordMessage, @NotNull String content, @NotNull String template) {
 
         Message root = Message.empty();
         Matcher matcher = INBOUND_PLACEHOLDER.matcher(template);

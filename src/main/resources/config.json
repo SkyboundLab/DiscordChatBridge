@@ -21,16 +21,17 @@
     "WorldLeave": "%player% left %world%",
     "PlayerDeath": "**%%player% died**",
     "PlayerKill": "**%killer% eliminated %victim%**",
-    "GameToDiscord": "**%player%**: %message%"
+     "GameToDiscord": "**%player%**: %message%",
+     "DiscordToGame": "%label% %username%: %message%"
   },
   "Events": {
     "ServerStart": true,
-    "ServerStartEmbed": false,
+    "ServerStartEmbed": true,
     "ServerStartEmbedColor": "#00FF00",
     "ServerStartEmbedContentType": "title",
 
     "ServerStop": true,
-    "ServerStopEmbed": false,
+    "ServerStopEmbed": true,
     "ServerStopEmbedColor": "#FF0000",
     "ServerStopEmbedContentType": "title",
 
