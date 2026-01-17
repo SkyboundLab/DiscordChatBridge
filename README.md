@@ -7,7 +7,6 @@ A Hytale server plugin that bridges chat between Discord and your game server.
 - Relay player chat messages to Discord and vice versa
 - Configurable event notifications (join, leave, death, kills, world changes)
 - Customizable message templates
-- Role colors displayed in-game
 - Mention prevention (optional)
 
 ## Installation
@@ -31,22 +30,37 @@ A Hytale server plugin that bridges chat between Discord and your game server.
 |-------------------------|-----------------------------------------------------------------------|
 | `BotToken`              | Your [Discord bot token](https://discord.com/developers/applications) |
 | `ChannelId`             | The Discord channel ID to bridge                                      |
-| `PresenceMessage`       | Bot status message                                                    |
+| `WebhookUrl`            | Discord webhook URL for sending chat messages                         |
 | `IgnoreBotMessages`     | Ignore messages from other bots                                       |
 | `IgnoreWebhookMessages` | Ignore webhook messages                                               |
 | `AllowMentions`         | Allow @mentions from game chat                                        |
 
 ### Events
 
-Toggle which events are broadcast to Discord:
-- `ServerStart` / `ServerStop`
-- `PlayerJoin` / `PlayerLeave`
-- `WorldEnter` / `WorldLeave`
-- `PlayerDeath` / `PlayerKill`
+Configure event notifications with nested options:
 
-### Messages
+```json
+"Events": {
+  "ServerStart": {
+    "Enable": true,
+    "Embed": {
+      "Enable": true,
+      "Color": "#008000"
+    },
+    "Message": "Server has started"
+  },
+  ...
+}
+```
 
-Customize the message templates for each event. Available placeholders:
+Each event has:
+- `Enable`: Toggle the event on/off
+- `Embed`: Configure embed display and color
+- `Message`: Custom message template
+
+Available placeholders:
 - `%player%` - Player name
 - `%world%` - World name
 - `%killer%` / `%victim%` - For kill events
+
+Discord messages to game are formatted as: `[Discord] username: message`
