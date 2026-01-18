@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -34,8 +35,9 @@ final class BridgeListener extends ListenerAdapter {
     private final Consumer<DiscordMessage> relayToGameChat;
     private final Consumer<TextChannel> discordChannelUpdater;
     private final BiConsumer<String, String> avatarSetter;
-    private final BiConsumer<String, String> linkSetter;
+    private final BiFunction<String, String, Boolean> linkSetter;
     private final Consumer<String> unlinkUser;
+    private final BiFunction<String, String, Boolean> isLinked;
 
     BridgeListener(
             @NotNull DiscordBridgeConfig config,
@@ -44,8 +46,9 @@ final class BridgeListener extends ListenerAdapter {
             @NotNull Consumer<DiscordMessage> relayToGameChat,
             @NotNull Consumer<TextChannel> discordChannelUpdater,
             @NotNull BiConsumer<String, String> avatarSetter,
-            @NotNull BiConsumer<String, String> linkSetter,
-            @NotNull Consumer<String> unlinkUser
+            @NotNull BiFunction<String, String, Boolean> linkSetter,
+            @NotNull Consumer<String> unlinkUser,
+            @NotNull BiFunction<String, String, Boolean> isLinked
     ) {
         this.config = config;
         this.logger = logger;
@@ -55,6 +58,7 @@ final class BridgeListener extends ListenerAdapter {
         this.avatarSetter = avatarSetter;
         this.linkSetter = linkSetter;
         this.unlinkUser = unlinkUser;
+        this.isLinked = isLinked;
     }
 
     @Override
@@ -72,11 +76,9 @@ final class BridgeListener extends ListenerAdapter {
         discordChannelUpdater.accept(channel);
         logger.at(Level.INFO).log("Discord bot connected as %s", event.getJDA().getSelfUser().getAsTag());
         event.getJDA().updateCommands().addCommands(
-                Commands.slash("avatar", "Set your avatar")
-                        .addOption(OptionType.ATTACHMENT, "image", "The image file", true),
-                Commands.slash("link", "Link your Discord account to a Hytale username")
-                        .addOption(OptionType.STRING, "username", "The Hytale username", true),
-                Commands.slash("unlink", "Unlink your Discord account from Hytale UUID")
+                Commands.slash("avatar", "Set your avatar for a Hytale account")
+                        .addOption(OptionType.ATTACHMENT, "image", "The image file", true)
+                        .addOption(OptionType.STRING, "username", "The Hytale username", true)
         ).queue();
         readyFuture.complete(null);
     }
@@ -133,15 +135,15 @@ final class BridgeListener extends ListenerAdapter {
         if (event.getName().equals("avatar")) {
             Message.Attachment attachment = event.getOption("image").getAsAttachment();
             String imageUrl = attachment.getUrl();
-            avatarSetter.accept(userId, imageUrl);
-            event.reply("Avatar set.").setEphemeral(true).queue();
-        } else if (event.getName().equals("link")) {
             String username = event.getOption("username").getAsString();
-            linkSetter.accept(username, userId);
-            event.reply("Linked to username " + username).setEphemeral(true).queue();
-        } else if (event.getName().equals("unlink")) {
-            unlinkUser.accept(userId);
-            event.reply("Unlinked.").setEphemeral(true).queue();
+            if (!isLinked.apply(username, userId)) {
+                if (!linkSetter.apply(username, userId)) {
+                    event.reply("This username is already linked to another Discord user.").setEphemeral(true).queue();
+                    return;
+                }
+            }
+            avatarSetter.accept(username, imageUrl);
+            event.reply("Avatar set for " + username).setEphemeral(true).queue();
         }
     }
 }

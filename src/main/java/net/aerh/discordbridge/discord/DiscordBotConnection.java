@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -25,8 +26,9 @@ public final class DiscordBotConnection implements AutoCloseable {
     private final HytaleLogger logger;
     private final Consumer<DiscordMessage> relayToGameChat;
     private final BiConsumer<String, String> avatarSetter;
-    private final BiConsumer<String, String> linkSetter;
+    private final BiFunction<String, String, Boolean> linkSetter;
     private final Consumer<String> unlinkUser;
+    private final BiFunction<String, String, Boolean> isLinked;
     private final CompletableFuture<Void> readyFuture = new CompletableFuture<>();
     private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
@@ -38,8 +40,9 @@ public final class DiscordBotConnection implements AutoCloseable {
             @NotNull HytaleLogger logger,
             @NotNull Consumer<DiscordMessage> relayToGameChat,
             @NotNull BiConsumer<String, String> avatarSetter,
-            @NotNull BiConsumer<String, String> linkSetter,
-            @NotNull Consumer<String> unlinkUser
+            @NotNull BiFunction<String, String, Boolean> linkSetter,
+            @NotNull Consumer<String> unlinkUser,
+            @NotNull BiFunction<String, String, Boolean> isLinked
     ) {
         this.config = config;
         this.logger = logger;
@@ -47,13 +50,14 @@ public final class DiscordBotConnection implements AutoCloseable {
         this.avatarSetter = avatarSetter;
         this.linkSetter = linkSetter;
         this.unlinkUser = unlinkUser;
+        this.isLinked = isLinked;
     }
 
     @NotNull
     public CompletableFuture<Void> start() {
         try {
             DiscordConfig discordConfig = config.getDiscordConfig();
-            BridgeListener listener = new BridgeListener(config, logger, readyFuture, relayToGameChat, this::onChannelReady, avatarSetter, linkSetter, unlinkUser);
+            BridgeListener listener = new BridgeListener(config, logger, readyFuture, relayToGameChat, this::onChannelReady, avatarSetter, linkSetter, unlinkUser, isLinked);
             JDABuilder builder = JDABuilder.createDefault(discordConfig.getBotToken())
                     .setMemberCachePolicy(MemberCachePolicy.NONE)
                     .enableIntents(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT)

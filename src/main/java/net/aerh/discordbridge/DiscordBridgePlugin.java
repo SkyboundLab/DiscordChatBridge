@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,8 +49,9 @@ public final class DiscordBridgePlugin extends JavaPlugin {
     private DiscordBotConnection botConnection;
     private boolean serverStartMessageSent;
     private boolean serverStopMessageSent;
-    private final Map<String, String> discordUserToAvatarUrl = new ConcurrentHashMap<>();
+    private final Map<String, String> hytaleUsernameToAvatarUrl = new ConcurrentHashMap<>();
     private final Map<String, String> hytaleUsernameToDiscordUserId = new ConcurrentHashMap<>();
+    private volatile boolean isShuttingDown = false;
 
     public DiscordBridgePlugin(@NotNull JavaPluginInit init) {
         super(init);
@@ -88,19 +90,27 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             return;
         }
 
-        BiConsumer<String, String> avatarSetter = (userId, url) -> {
-            discordUserToAvatarUrl.put(userId, url);
-            saveMappings();
-        };
-        BiConsumer<String, String> linkSetter = (username, userId) -> {
-            hytaleUsernameToDiscordUserId.put(username, userId);
-            saveMappings();
-        };
-        Consumer<String> unlinkUser = userId -> {
-            hytaleUsernameToDiscordUserId.entrySet().removeIf(entry -> entry.getValue().equals(userId));
-            saveMappings();
-        };
-        this.botConnection = new DiscordBotConnection(cfg, getLogger(), this::relayDiscordMessage, avatarSetter, linkSetter, unlinkUser);
+         BiConsumer<String, String> avatarSetter = (username, url) -> {
+             hytaleUsernameToAvatarUrl.put(username, url);
+             saveMappings();
+         };
+         BiFunction<String, String, Boolean> linkSetter = (username, userId) -> {
+             if (hytaleUsernameToDiscordUserId.containsKey(username) && !hytaleUsernameToDiscordUserId.get(username).equals(userId)) {
+                 return false;
+             }
+             hytaleUsernameToDiscordUserId.put(username, userId);
+             saveMappings();
+             return true;
+         };
+         Consumer<String> unlinkUser = userId -> {
+             hytaleUsernameToDiscordUserId.entrySet().removeIf(entry -> entry.getValue().equals(userId));
+             saveMappings();
+         };
+         BiFunction<String, String, Boolean> isLinked = (username, userId) -> {
+             String linkedUserId = hytaleUsernameToDiscordUserId.get(username);
+             return linkedUserId != null && linkedUserId.equals(userId);
+         };
+        this.botConnection = new DiscordBotConnection(cfg, getLogger(), this::relayDiscordMessage, avatarSetter, linkSetter, unlinkUser, isLinked);
         getLogger().at(Level.INFO).log("Discord bot connection initialized");
     }
 
@@ -108,6 +118,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
     protected void start() {
         this.serverStartMessageSent = false;
         this.serverStopMessageSent = false;
+        this.isShuttingDown = false;
 
         if (botConnection == null) {
             getLogger().at(Level.INFO).log("Skipping Discord bot start - not configured");
@@ -132,6 +143,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
     @Override
     protected void shutdown() {
         getLogger().at(Level.INFO).log("Shutting down Discord bridge...");
+        this.isShuttingDown = true;
         sendServerStopMessage();
         if (botConnection != null) {
             botConnection.shutdown();
@@ -161,7 +173,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         }
         String username = event.getSender().getUsername();
         String discordUserId = hytaleUsernameToDiscordUserId.get(username);
-        String avatarUrl = discordUserId != null ? discordUserToAvatarUrl.get(discordUserId) : null;
+        String avatarUrl = discordUserId != null ? hytaleUsernameToAvatarUrl.get(username) : null;
         botConnection.sendWebhookMessage(webhookUrl, event.getSender().getUsername(), cleaned, avatarUrl);
     }
 
@@ -173,6 +185,9 @@ public final class DiscordBridgePlugin extends JavaPlugin {
     }
 
     private void onPlayerDisconnect(@NotNull PlayerDisconnectEvent event) {
+        if (isShuttingDown) {
+            return;
+        }
         DiscordBridgeConfig cfg = config.get();
         EventsConfig events = cfg.getEventsConfig();
         MessagesConfig messages = cfg.getMessagesConfig();
@@ -399,8 +414,8 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             for (String key : props.stringPropertyNames()) {
                 String value = props.getProperty(key);
                 if (key.startsWith("avatar.")) {
-                    String userId = key.substring(7);
-                    discordUserToAvatarUrl.put(userId, value);
+                    String username = key.substring(7);
+                    hytaleUsernameToAvatarUrl.put(username, value);
                 } else if (key.startsWith("link.")) {
                     String username = key.substring(5);
                     hytaleUsernameToDiscordUserId.put(username, value);
@@ -414,7 +429,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
     private void saveMappings() {
         Path mappingsFile = getDataDirectory().resolve("mappings.properties");
         Properties props = new Properties();
-        for (Map.Entry<String, String> entry : discordUserToAvatarUrl.entrySet()) {
+        for (Map.Entry<String, String> entry : hytaleUsernameToAvatarUrl.entrySet()) {
             props.setProperty("avatar." + entry.getKey(), entry.getValue());
         }
         for (Map.Entry<String, String> entry : hytaleUsernameToDiscordUserId.entrySet()) {
