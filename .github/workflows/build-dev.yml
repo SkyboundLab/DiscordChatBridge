@@ -21,7 +21,7 @@ jobs:
           distribution: temurin
 
       - name: Download Server
-        run: wget -O HytaleServer.jar ${{ secrets.SERVER }}
+        run: wget -O HytaleServer.jar ${{ secrets.HYTALE }}
 
       - name: Build
         run: mvn package
