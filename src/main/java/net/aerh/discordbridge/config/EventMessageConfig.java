@@ -4,6 +4,7 @@ import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Per-event configuration for toggling and formatting notifications.
@@ -20,10 +21,15 @@ public final class EventMessageConfig {
                     (cfg, value) -> cfg.message = value,
                     cfg -> cfg.message)
             .add()
+            .append(new KeyedCodec<>("Color", Codec.STRING),
+                    (cfg, value) -> cfg.color = value,
+                    cfg -> cfg.color)
+            .add()
             .build();
 
     private boolean enabled = true;
     private String message = "";
+    private String color = null;
 
     public EventMessageConfig() {
     }
@@ -40,5 +46,32 @@ public final class EventMessageConfig {
     @NotNull
     public String getMessage() {
         return message == null ? "" : message;
+    }
+
+    @Nullable
+    public String getColor() {
+        return color == null || color.isBlank() ? null : color;
+    }
+
+    /**
+     * Parses the color string to an integer for Discord.
+     * Supports formats: #RRGGBB or RRGGBB
+     *
+     * @return The color as an integer, or null if not set or invalid
+     */
+    @Nullable
+    public Integer getColorAsInt() {
+        String colorStr = getColor();
+        if (colorStr == null) {
+            return null;
+        }
+        try {
+            if (colorStr.startsWith("#")) {
+                colorStr = colorStr.substring(1);
+            }
+            return Integer.parseInt(colorStr, 16);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

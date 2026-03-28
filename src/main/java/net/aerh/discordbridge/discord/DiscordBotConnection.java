@@ -4,9 +4,11 @@ import com.hypixel.hytale.logger.HytaleLogger;
 import net.aerh.discordbridge.config.DiscordBridgeConfig;
 import net.aerh.discordbridge.config.DiscordConfig;
 import net.aerh.discordbridge.discord.model.DiscordMessage;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
@@ -81,16 +83,31 @@ public final class DiscordBotConnection implements AutoCloseable {
     }
 
     public void sendMessage(@NotNull String content) {
+        sendMessage(content, null);
+    }
+
+    public void sendMessage(@NotNull String content, @Nullable Integer embedColor) {
         TextChannel channel = this.bridgeChannel;
         if (channel == null) {
             LOGGER.at(Level.FINE).log("Discord channel not ready; dropping message.");
             return;
         }
 
-        channel.sendMessage(content)
-                .queue(null, throwable -> LOGGER.at(Level.WARNING)
-                        .withCause(throwable)
-                        .log("Failed to send chat message to Discord"));
+        if (embedColor != null) {
+            MessageEmbed embed = new EmbedBuilder()
+                    .setDescription(content)
+                    .setColor(embedColor)
+                    .build();
+            channel.sendMessageEmbeds(embed)
+                    .queue(null, throwable -> LOGGER.at(Level.WARNING)
+                            .withCause(throwable)
+                            .log("Failed to send embed message to Discord"));
+        } else {
+            channel.sendMessage(content)
+                    .queue(null, throwable -> LOGGER.at(Level.WARNING)
+                            .withCause(throwable)
+                            .log("Failed to send chat message to Discord"));
+        }
     }
 
     public boolean hasWebhook() {

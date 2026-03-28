@@ -180,7 +180,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             String payload = cfg.getMessagesConfig().getOutboundTemplate()
                     .replace("%player%", event.getSender().getUsername())
                     .replace("%message%", cleaned);
-            sendToDiscord(payload, cfg);
+            sendToDiscord(payload, null, cfg);
         }
     }
 
@@ -276,7 +276,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         root.insert(Message.raw(text).color(color));
     }
 
-    private void sendToDiscord(@NotNull String message, @NotNull DiscordBridgeConfig cfg) {
+    private void sendToDiscord(@NotNull String message, @Nullable Integer embedColor, @NotNull DiscordBridgeConfig cfg) {
         if (message.isBlank()) {
             return;
         }
@@ -287,7 +287,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             return;
         }
 
-        botConnection.sendMessage(finalMessage);
+        botConnection.sendMessage(finalMessage, embedColor);
     }
 
     /**
@@ -306,7 +306,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             message = message.replace(replacements[i], replacements[i + 1]);
         }
 
-        sendToDiscord(message, config.get());
+        sendToDiscord(message, eventConfig.getColorAsInt(), config.get());
     }
 
     private void startBotConnection(@NotNull DiscordBridgeConfig cfg) {
