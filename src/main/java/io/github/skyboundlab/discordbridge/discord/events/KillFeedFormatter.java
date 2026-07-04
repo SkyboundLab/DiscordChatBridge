@@ -1,4 +1,4 @@
-package net.aerh.discordbridge.discord.events;
+package io.github.skyboundlab.discordbridge.discord.events;
 
 import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.component.Store;
@@ -15,15 +15,16 @@ import com.hypixel.hytale.server.core.modules.i18n.I18nModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.util.MessageUtil;
-import net.aerh.discordbridge.config.EventMessageConfig;
-import net.aerh.discordbridge.config.EventsConfig;
-import net.aerh.discordbridge.config.PlayerKillConfig;
+import io.github.skyboundlab.discordbridge.config.EventMessageConfig;
+import io.github.skyboundlab.discordbridge.config.EventsConfig;
+import io.github.skyboundlab.discordbridge.config.PlayerKillConfig;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 public final class KillFeedFormatter {
@@ -34,27 +35,25 @@ public final class KillFeedFormatter {
     private final ComponentType<EntityStore, Player> playerComponent = Player.getComponentType();
     private final ComponentType<EntityStore, DisplayNameComponent> displayNameComponent = DisplayNameComponent.getComponentType();
     private final Supplier<EventsConfig> eventsSupplier;
-    private final MessageSender messageSender;
+    private final BiConsumer<EventMessageConfig, String[]> messageSender;
     private final Supplier<String> localeSupplier;
-    private final Supplier<Boolean> debugSupplier;
 
     public KillFeedFormatter(
             @NotNull Supplier<EventsConfig> eventsSupplier,
-            @NotNull MessageSender messageSender,
-            @NotNull Supplier<String> localeSupplier,
-            @NotNull Supplier<Boolean> debugSupplier
+            @NotNull BiConsumer<EventMessageConfig, String[]> messageSender,
+            @NotNull Supplier<String> localeSupplier
     ) {
         this.eventsSupplier = eventsSupplier;
         this.messageSender = messageSender;
         this.localeSupplier = localeSupplier;
-        this.debugSupplier = debugSupplier;
     }
 
     void dispatchDeathMessage(
             @NotNull Damage damage,
             @Nullable PlayerRef victimPlayer,
             @Nullable DisplayNameComponent victimDisplayName,
-            @NotNull Store<EntityStore> store
+            @NotNull Store<EntityStore> store,
+            boolean debug
     ) {
         EventsConfig events = eventsSupplier.get();
         String locale = resolveLocale();
@@ -65,7 +64,7 @@ public final class KillFeedFormatter {
 
         PlayerRef killerPlayer = resolveKillerPlayer(damage, store);
         String killerName = killerPlayer != null ? killerPlayer.getUsername() : null;
-        if (killerName == null && isDebugEnabled()) {
+        if (killerName == null && debug) {
             killerName = resolveKillerName(damage, store, locale);
         }
 
@@ -89,31 +88,29 @@ public final class KillFeedFormatter {
                 message = killConfig.getMessage();
             }
 
-            EventMessageConfig config = new EventMessageConfig(killConfig.isEnabled(), message);
-            messageSender.send(config,
+            EventMessageConfig config = new EventMessageConfig(killConfig.isEnabled(), message, null);
+            messageSender.accept(config, new String[]{
                     "%killer%", killerName,
                     "%victim%", victimName,
                     "%player%", victimName,
                     "%cause%", cause,
                     "%projectile%", projectile == null ? "" : projectile,
                     "%item%", item == null ? "" : item
-            );
+            });
         } else {
             EventMessageConfig config = events.getPlayerDeath();
             String cause = resolveDeathCause(damage, store, locale);
-            messageSender.send(config,
+            messageSender.accept(config, new String[]{
                     "%player%", victimName,
                     "%cause%", cause
-            );
+            });
         }
     }
 
     @Nullable
     private PlayerRef resolveKillerPlayer(@NotNull Damage damage, @NotNull Store<EntityStore> store) {
-        if (damage.getSource() instanceof Damage.EntitySource entitySource) {
-            if (entitySource.getRef().isValid()) {
-                return store.getComponent(entitySource.getRef(), playerRefComponent);
-            }
+        if (damage.getSource() instanceof Damage.EntitySource entitySource && entitySource.getRef().isValid()) {
+            return store.getComponent(entitySource.getRef(), playerRefComponent);
         }
 
         return null;
@@ -122,11 +119,6 @@ public final class KillFeedFormatter {
     private String resolveLocale() {
         String locale = localeSupplier.get();
         return locale == null || locale.isBlank() ? DEFAULT_LOCALE : locale;
-    }
-
-    private boolean isDebugEnabled() {
-        Boolean debug = debugSupplier.get();
-        return debug != null && debug;
     }
 
     @NotNull
@@ -199,34 +191,22 @@ public final class KillFeedFormatter {
     }
 
     private String resolveDeathCause(@NotNull Damage damage, @NotNull Store<EntityStore> store, @NotNull String locale) {
-        Damage.Source source = damage.getSource();
-        if (source instanceof Damage.ProjectileSource projectileSource) {
-            DisplayNameComponent displayNameComponent = store.getComponent(projectileSource.getProjectile(), DisplayNameComponent.getComponentType());
-            if (displayNameComponent != null) {
-                Message displayName = displayNameComponent.getDisplayName();
-                if (displayName != null) {
-                    return renderMessage(displayName, locale);
-                }
+        String fromSource = switch (damage.getSource()) {
+            case Damage.ProjectileSource ps -> {
+                var dc = store.getComponent(ps.getProjectile(), DisplayNameComponent.getComponentType());
+                yield extractDisplayText(dc, locale);
             }
-        }
-
-        if (source instanceof Damage.EntitySource entitySource) {
-            DisplayNameComponent displayNameComponent = store.getComponent(entitySource.getRef(), DisplayNameComponent.getComponentType());
-            if (displayNameComponent != null) {
-                Message displayName = displayNameComponent.getDisplayName();
-                if (displayName != null) {
-                    return renderMessage(displayName, locale);
-                }
+            case Damage.EntitySource es -> {
+                var dc = store.getComponent(es.getRef(), DisplayNameComponent.getComponentType());
+                yield extractDisplayText(dc, locale);
             }
-        } else if (source instanceof Damage.EnvironmentSource environmentSource) {
-            String type = environmentSource.getType();
-            String translated = I18nModule.get().getMessage(locale, type);
-            if (translated != null && !translated.isBlank()) {
-                return translated;
+            case Damage.EnvironmentSource env -> {
+                String translated = I18nModule.get().getMessage(locale, env.getType());
+                yield translated != null && !translated.isBlank() ? translated : env.getType();
             }
-
-            return type;
-        }
+            default -> null;
+        };
+        if (fromSource != null) return fromSource;
 
         DamageCause cause = damage.getCause();
         if (cause != null) {
@@ -238,6 +218,15 @@ public final class KillFeedFormatter {
         }
 
         return "unknown";
+    }
+
+    @Nullable
+    private String extractDisplayText(@Nullable DisplayNameComponent dc, @NotNull String locale) {
+        if (dc != null) {
+            Message dn = dc.getDisplayName();
+            if (dn != null) return renderMessage(dn, locale);
+        }
+        return null;
     }
 
     @Nullable
@@ -274,7 +263,7 @@ public final class KillFeedFormatter {
         Map<String, FormattedMessage> resolvedMessageParams = null;
         if (formatted.messageParams != null && !formatted.messageParams.isEmpty()) {
             resolvedMessageParams = new HashMap<>();
-            for (Map.Entry<String, FormattedMessage> entry : formatted.messageParams.entrySet()) {
+            for (var entry : formatted.messageParams.entrySet()) {
                 String resolved = renderMessage(new Message(entry.getValue()), locale);
                 FormattedMessage replacement = new FormattedMessage();
                 replacement.rawText = resolved;
@@ -291,8 +280,4 @@ public final class KillFeedFormatter {
         return builder.toString();
     }
 
-    @FunctionalInterface
-    public interface MessageSender {
-        void send(@NotNull EventMessageConfig eventConfig, @NotNull String... replacements);
-    }
 }

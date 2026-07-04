@@ -1,4 +1,4 @@
-package net.aerh.discordbridge.config;
+package io.github.skyboundlab.discordbridge.config;
 
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
@@ -52,36 +52,22 @@ public final class EventsConfig {
             .add()
             .build();
 
-    private static final String DEFAULT_SERVER_START = ":white_check_mark: Server is now online!";
-    private static final String DEFAULT_SERVER_STOP = ":octagonal_sign: Server is shutting down.";
-    private static final String DEFAULT_PLAYER_JOIN = ":inbox_tray: %player% joined the server.";
-    private static final String DEFAULT_PLAYER_LEAVE = ":outbox_tray: %player% left the server.";
-    private static final String DEFAULT_WORLD_ENTER = ":compass: %player% entered %world%.";
-    private static final String DEFAULT_WORLD_LEAVE = ":door: %player% left %world%.";
-    private static final String DEFAULT_WORLD_CHANGE = ":repeat: %player% moved from %from% to %to%.";
-    private static final String DEFAULT_PLAYER_DEATH = ":skull: %player% died to %cause%.";
-    private static final String DEFAULT_PLAYER_KILL = ":crossed_swords: %killer% killed %victim%.";
-    private static final String DEFAULT_PLAYER_KILL_WITH_ITEM = ":crossed_swords: %killer% killed %victim% using %item%.";
-    private static final String DEFAULT_PLAYER_KILL_WITH_PROJECTILE = ":bow_and_arrow: %killer% shot %victim% with %projectile%.";
-    private static final String DEFAULT_PLAYER_KILL_WITH_PROJECTILE_UNKNOWN = ":bow_and_arrow: %killer% shot %victim%.";
-    private static final String DEFAULT_ZONE_DISCOVERY = ":map: %player% discovered %zone% (%region%).";
-
-    private EventMessageConfig serverStart = new EventMessageConfig(true, DEFAULT_SERVER_START);
-    private EventMessageConfig serverStop = new EventMessageConfig(true, DEFAULT_SERVER_STOP);
-    private EventMessageConfig playerJoin = new EventMessageConfig(true, DEFAULT_PLAYER_JOIN);
-    private EventMessageConfig playerLeave = new EventMessageConfig(true, DEFAULT_PLAYER_LEAVE);
-    private EventMessageConfig worldEnter = new EventMessageConfig(true, DEFAULT_WORLD_ENTER);
-    private EventMessageConfig worldLeave = new EventMessageConfig(true, DEFAULT_WORLD_LEAVE);
-    private EventMessageConfig worldChange = new EventMessageConfig(true, DEFAULT_WORLD_CHANGE);
-    private EventMessageConfig playerDeath = new EventMessageConfig(true, DEFAULT_PLAYER_DEATH);
+    private EventMessageConfig serverStart = new EventMessageConfig(true, "**Server has started**", "#008000");
+    private EventMessageConfig serverStop = new EventMessageConfig(true, "**Server has stopped**", "#800000");
+    private EventMessageConfig playerJoin = new EventMessageConfig(true, "**%player% joined the game**", "#00FF00");
+    private EventMessageConfig playerLeave = new EventMessageConfig(true, "**%player% left the game**", "#FF0000");
+    private EventMessageConfig worldEnter = new EventMessageConfig(false, ":compass: %player% entered %world%.", null);
+    private EventMessageConfig worldLeave = new EventMessageConfig(false, ":door: %player% left %world%.", null);
+    private EventMessageConfig worldChange = new EventMessageConfig(false, ":repeat: %player% moved from %from% to %to%.", null);
+    private EventMessageConfig playerDeath = new EventMessageConfig(true, "**%player% died to %cause%**", "#FFA500");
     private PlayerKillConfig playerKill = new PlayerKillConfig(
             true,
-            DEFAULT_PLAYER_KILL,
-            DEFAULT_PLAYER_KILL_WITH_ITEM,
-            DEFAULT_PLAYER_KILL_WITH_PROJECTILE,
-            DEFAULT_PLAYER_KILL_WITH_PROJECTILE_UNKNOWN
+            "**%killer% killed %victim%**",
+            "**%killer% killed %victim% using %item%**",
+            "**%killer% shot %victim% with %projectile%**",
+            "**%killer% shot %victim%**"
     );
-    private EventMessageConfig zoneDiscovery = new EventMessageConfig(true, DEFAULT_ZONE_DISCOVERY);
+    private EventMessageConfig zoneDiscovery = new EventMessageConfig(false, ":map: %player% discovered %zone% (%region%).", null);
 
     public EventMessageConfig getServerStart() {
         return serverStart;

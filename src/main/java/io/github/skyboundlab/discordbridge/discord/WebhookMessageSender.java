@@ -1,4 +1,4 @@
-package net.aerh.discordbridge.discord;
+package io.github.skyboundlab.discordbridge.discord;
 
 import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.WebhookClientBuilder;

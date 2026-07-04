@@ -1,4 +1,4 @@
-package net.aerh.discordbridge.discord.events;
+package io.github.skyboundlab.discordbridge.discord.events;
 
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.ComponentType;
@@ -57,12 +57,13 @@ public final class KillFeed extends RefChangeSystem<EntityStore, DeathComponent>
         }
 
         PlayerRef victimPlayer = store.getComponent(ref, playerRefComponent);
-        if (victimPlayer == null && !isDebugEnabled()) {
+        boolean debug = debugSupplier != null && Boolean.TRUE.equals(debugSupplier.get());
+        if (victimPlayer == null && !debug) {
             return;
         }
 
         DisplayNameComponent displayName = store.getComponent(ref, displayNameComponent);
-        killFeed.dispatchDeathMessage(damage, victimPlayer, displayName, store);
+        killFeed.dispatchDeathMessage(damage, victimPlayer, displayName, store, debug);
     }
 
     @Override
@@ -84,8 +85,4 @@ public final class KillFeed extends RefChangeSystem<EntityStore, DeathComponent>
     ) {
     }
 
-    private boolean isDebugEnabled() {
-        Boolean debug = debugSupplier.get();
-        return debug != null && debug;
-    }
 }

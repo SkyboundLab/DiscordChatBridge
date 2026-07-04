@@ -1,4 +1,4 @@
-package net.aerh.discordbridge.discord.events;
+package io.github.skyboundlab.discordbridge.discord.events;
 
 import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
@@ -13,12 +13,14 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.function.BiConsumer;
+
 public final class ZoneDiscovery extends EntityEventSystem<EntityStore, DiscoverZoneEvent.Display> {
 
     private final ComponentType<EntityStore, PlayerRef> playerRefComponent = PlayerRef.getComponentType();
-    private final ZoneDiscoverySender sender;
+    private final BiConsumer<PlayerRef, WorldMapTracker.ZoneDiscoveryInfo> sender;
 
-    public ZoneDiscovery(@NotNull ZoneDiscoverySender sender) {
+    public ZoneDiscovery(@NotNull BiConsumer<PlayerRef, WorldMapTracker.ZoneDiscoveryInfo> sender) {
         super(DiscoverZoneEvent.Display.class);
         this.sender = sender;
     }
@@ -43,11 +45,6 @@ public final class ZoneDiscovery extends EntityEventSystem<EntityStore, Discover
         }
 
         WorldMapTracker.ZoneDiscoveryInfo info = event.getDiscoveryInfo();
-        sender.send(playerRef, info);
-    }
-
-    @FunctionalInterface
-    public interface ZoneDiscoverySender {
-        void send(@NotNull PlayerRef player, @NotNull WorldMapTracker.ZoneDiscoveryInfo info);
+        sender.accept(playerRef, info);
     }
 }

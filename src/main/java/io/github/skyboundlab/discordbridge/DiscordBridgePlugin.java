@@ -1,4 +1,4 @@
-package net.aerh.discordbridge;
+package io.github.skyboundlab.discordbridge;
 
 import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.server.core.Message;
@@ -12,14 +12,13 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.WorldMapTracker;
 import com.hypixel.hytale.server.core.util.Config;
-import net.aerh.discordbridge.config.*;
-import net.aerh.discordbridge.discord.DiscordBotConnection;
-import net.aerh.discordbridge.discord.MessageSanitizer;
-import net.aerh.discordbridge.discord.PendingMessageHandler;
-import net.aerh.discordbridge.discord.events.KillFeed;
-import net.aerh.discordbridge.discord.events.KillFeedFormatter;
-import net.aerh.discordbridge.discord.events.ZoneDiscovery;
-import net.aerh.discordbridge.discord.model.DiscordMessage;
+import io.github.skyboundlab.discordbridge.config.*;
+import io.github.skyboundlab.discordbridge.discord.DiscordBotConnection;
+import io.github.skyboundlab.discordbridge.discord.MessageSanitizer;
+import io.github.skyboundlab.discordbridge.discord.events.KillFeed;
+import io.github.skyboundlab.discordbridge.discord.events.KillFeedFormatter;
+import io.github.skyboundlab.discordbridge.discord.events.ZoneDiscovery;
+import io.github.skyboundlab.discordbridge.discord.model.DiscordMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,6 +26,8 @@ import java.awt.*;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,8 +40,9 @@ public final class DiscordBridgePlugin extends JavaPlugin {
     private final Config<DiscordBridgeConfig> config = withConfig(DiscordBridgeConfig.CODEC);
     private final Map<UUID, String> playerWorlds = new ConcurrentHashMap<>();
 
+    private final AtomicBoolean serverBooted = new AtomicBoolean(false);
+    private final AtomicBoolean startMessageSent = new AtomicBoolean(false);
     private DiscordBotConnection botConnection;
-    private PendingMessageHandler startMessageHandler;
 
     public DiscordBridgePlugin(@NotNull JavaPluginInit init) {
         super(init);
@@ -56,7 +58,6 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         Color contentColor = Color.decode(msgConfig.getContentColor());
         Color labelColor = Color.decode(msgConfig.getLabelColor());
         Color defaultRoleColor = Color.decode(msgConfig.getDefaultRoleColor());
-        String discordLabel = msgConfig.getDiscordLabel();
 
         Message root = Message.empty();
         Matcher matcher = INBOUND_PLACEHOLDER.matcher(template);
@@ -69,7 +70,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             }
 
             switch (matcher.group(1)) {
-                case "label" -> appendTextSegment(root, discordLabel, labelColor);
+                case "label" -> appendTextSegment(root, msgConfig.getDiscordLabel(), labelColor);
                 case "role" -> appendRole(root, discordMessage, defaultRoleColor);
                 case "username" -> appendUsername(root, discordMessage, defaultRoleColor);
                 case "message" -> {
@@ -103,20 +104,25 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         appendTextSegment(root, "[" + discordMessage.topRoleName() + "]", color);
     }
 
+    private static void appendUsername(@NotNull Message root, @NotNull DiscordMessage discordMessage, @NotNull Color defaultRoleColor) {
+        Color color = discordMessage.displayColor() != null ? discordMessage.displayColor() : defaultRoleColor;
+        appendTextSegment(root, discordMessage.authorName(), color);
+    }
+
     @Override
     protected void shutdown() {
         getLogger().at(Level.INFO).log("Shutting down Discord bridge...");
-        sendEventMessage(config.get().getEventsConfig().getServerStop());
         if (botConnection != null) {
+            try {
+                botConnection.awaitReady().get(10, TimeUnit.SECONDS);
+            } catch (Exception ignored) {
+                getLogger().at(Level.WARNING).log("Discord bot not ready within timeout, attempting to send stop message anyway");
+            }
+            sendEventMessage(config.get().getEventsConfig().getServerStop());
             botConnection.shutdown();
             botConnection = null;
             getLogger().at(Level.INFO).log("Discord bot disconnected");
         }
-    }
-
-    private static void appendUsername(@NotNull Message root, @NotNull DiscordMessage discordMessage, @NotNull Color defaultRoleColor) {
-        Color color = discordMessage.displayColor() != null ? discordMessage.displayColor() : defaultRoleColor;
-        appendTextSegment(root, discordMessage.authorName(), color);
     }
 
     @Override
@@ -134,8 +140,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         KillFeedFormatter killFeed = new KillFeedFormatter(
                 cfg::getEventsConfig,
                 this::sendEventMessage,
-                () -> cfg.getDiscordConfig().getLocale(),
-                cfg::isDebug
+                () -> cfg.getDiscordConfig().getLocale()
         );
         getEntityStoreRegistry().registerSystem(new KillFeed(killFeed, cfg::isDebug));
         getEntityStoreRegistry().registerSystem(new ZoneDiscovery(this::sendZoneDiscoveryMessage));
@@ -153,9 +158,8 @@ public final class DiscordBridgePlugin extends JavaPlugin {
 
     @Override
     protected void start() {
-        if (startMessageHandler != null) {
-            startMessageHandler.reset();
-        }
+        serverBooted.set(false);
+        startMessageSent.set(false);
     }
 
     private void onPlayerChat(@NotNull PlayerChatEvent event) {
@@ -181,7 +185,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             String payload = cfg.getMessagesConfig().getOutboundTemplate()
                     .replace("%player%", event.getSender().getUsername())
                     .replace("%message%", cleaned);
-            sendToDiscord(payload, null, cfg);
+            sendToDiscord(payload, null);
         }
     }
 
@@ -244,9 +248,8 @@ public final class DiscordBridgePlugin extends JavaPlugin {
     }
 
     private void onServerBoot(@NotNull BootEvent event) {
-        if (startMessageHandler != null) {
-            startMessageHandler.onConditionMet();
-        }
+        serverBooted.set(true);
+        trySendStartMessage();
     }
 
     private void relayDiscordMessage(@NotNull DiscordMessage message) {
@@ -277,12 +280,12 @@ public final class DiscordBridgePlugin extends JavaPlugin {
         root.insert(Message.raw(text).color(color));
     }
 
-    private void sendToDiscord(@NotNull String message, @Nullable Integer embedColor, @NotNull DiscordBridgeConfig cfg) {
+    private void sendToDiscord(@NotNull String message, @Nullable Integer embedColor) {
         if (message.isBlank()) {
             return;
         }
 
-        DiscordConfig discordConfig = cfg.getDiscordConfig();
+        DiscordConfig discordConfig = config.get().getDiscordConfig();
         String finalMessage = discordConfig.isAllowMentions() ? message : MessageSanitizer.preventMentions(message);
         if (botConnection == null || !botConnection.isReady()) {
             return;
@@ -307,24 +310,15 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             message = message.replace(replacements[i], replacements[i + 1]);
         }
 
-        sendToDiscord(message, eventConfig.getColorAsInt(), config.get());
+        sendToDiscord(message, eventConfig.getColorAsInt());
     }
 
     private void startBotConnection(@NotNull DiscordBridgeConfig cfg) {
-        if (botConnection == null) {
-            return;
-        }
-
-        this.startMessageHandler = new PendingMessageHandler(
-                botConnection::isReady,
-                () -> sendEventMessage(cfg.getEventsConfig().getServerStart())
-        );
-
         getLogger().at(Level.INFO).log("Starting Discord bot connection...");
         this.botConnection.start()
                 .thenRun(() -> {
                     getLogger().at(Level.INFO).log("Discord bot connected successfully to channel %s", cfg.getDiscordConfig().getChannelId());
-                    startMessageHandler.onReady();
+                    trySendStartMessage();
                 })
                 .exceptionally(throwable -> {
                     getLogger().at(Level.SEVERE)
@@ -332,6 +326,12 @@ public final class DiscordBridgePlugin extends JavaPlugin {
                             .log("Failed to start Discord bridge bot");
                     return null;
                 });
+    }
+
+    private void trySendStartMessage() {
+        if (serverBooted.get() && botConnection != null && botConnection.isReady() && startMessageSent.compareAndSet(false, true)) {
+            sendEventMessage(config.get().getEventsConfig().getServerStart());
+        }
     }
 
     private void sendZoneDiscoveryMessage(@NotNull PlayerRef player, @NotNull WorldMapTracker.ZoneDiscoveryInfo info) {

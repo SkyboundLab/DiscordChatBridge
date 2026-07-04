@@ -1,9 +1,9 @@
-package net.aerh.discordbridge.discord;
+package io.github.skyboundlab.discordbridge.discord;
 
 import com.hypixel.hytale.logger.HytaleLogger;
-import net.aerh.discordbridge.config.DiscordBridgeConfig;
-import net.aerh.discordbridge.config.DiscordConfig;
-import net.aerh.discordbridge.discord.model.DiscordMessage;
+import io.github.skyboundlab.discordbridge.config.DiscordBridgeConfig;
+import io.github.skyboundlab.discordbridge.config.DiscordConfig;
+import io.github.skyboundlab.discordbridge.discord.model.DiscordMessage;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
@@ -15,7 +15,6 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -81,10 +80,9 @@ final class BridgeListener extends ListenerAdapter {
             return;
         }
 
-        List<String> attachments = new ArrayList<>();
-        for (Message.Attachment attachment : event.getMessage().getAttachments()) {
-            attachments.add(attachment.getUrl());
-        }
+        List<String> attachments = event.getMessage().getAttachments().stream()
+                .map(Message.Attachment::getUrl)
+                .toList();
 
         Member member = event.getMember();
         String displayName = member != null ? member.getEffectiveName() : event.getAuthor().getName();

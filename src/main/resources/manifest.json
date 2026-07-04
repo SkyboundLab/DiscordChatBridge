@@ -1,12 +1,13 @@
 {
-  "Group": "net.aerh",
+  "Group": "io.github.skyboundlab",
   "Name": "DiscordChatBridge",
-  "Version": "1.1.0",
+  "Version": "2.0.0",
   "Description": "Discord ↔ Hytale chat relay plugin",
   "Authors": [
-    { "Name": "Aerh" }
+    { "Name": "Aerh" },
+    { "Name": "Prinky" }
   ],
-  "Website": "https://aerh.net/",
-  "Main": "net.aerh.discordbridge.DiscordBridgePlugin",
+  "Website": "https://github.com/SkyboundLab/DiscordChatBridge",
+  "Main": "io.github.skyboundlab.discordbridge.DiscordBridgePlugin",
   "ServerVersion": "*"
 }

@@ -1,6 +1,6 @@
-package net.aerh.discordbridge.discord;
+package io.github.skyboundlab.discordbridge.discord;
 
-import net.aerh.discordbridge.discord.model.DiscordMessage;
+import io.github.skyboundlab.discordbridge.discord.model.DiscordMessage;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.regex.Pattern;

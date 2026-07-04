@@ -1,4 +1,4 @@
-package net.aerh.discordbridge.config;
+package io.github.skyboundlab.discordbridge.config;
 
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
@@ -50,17 +50,15 @@ public final class DiscordConfig {
             .add()
             .build();
 
-    private static final String DEFAULT_PRESENCE = "Watching the server";
-
     private String botToken = "";
     private String channelId = "";
-    private String presenceMessage = DEFAULT_PRESENCE;
+    private String presenceMessage = "";
     private boolean ignoreBotMessages = true;
     private boolean ignoreWebhookMessages = true;
-    private boolean allowMentions = false;
+    private boolean allowMentions = true;
     private String locale = "en-US";
     private String webhookUrl = "";
-    private boolean useWebhookForChat = false;
+    private boolean useWebhookForChat = true;
 
     @NotNull
     public String getBotToken() {
@@ -74,9 +72,7 @@ public final class DiscordConfig {
 
     @NotNull
     public String getPresenceMessage() {
-        return presenceMessage == null || presenceMessage.isBlank()
-                ? DEFAULT_PRESENCE
-                : presenceMessage;
+        return presenceMessage == null ? "" : presenceMessage;
     }
 
     public boolean isIgnoreBotMessages() {

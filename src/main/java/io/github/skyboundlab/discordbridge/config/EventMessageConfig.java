@@ -1,4 +1,4 @@
-package net.aerh.discordbridge.config;
+package io.github.skyboundlab.discordbridge.config;
 
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
@@ -34,9 +34,10 @@ public final class EventMessageConfig {
     public EventMessageConfig() {
     }
 
-    public EventMessageConfig(boolean enabled, @NotNull String message) {
+    public EventMessageConfig(boolean enabled, @NotNull String message, @Nullable String color) {
         this.enabled = enabled;
         this.message = message;
+        this.color = color;
     }
 
     public boolean isEnabled() {

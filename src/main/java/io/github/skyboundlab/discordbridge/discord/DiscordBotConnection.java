@@ -1,9 +1,9 @@
-package net.aerh.discordbridge.discord;
+package io.github.skyboundlab.discordbridge.discord;
 
 import com.hypixel.hytale.logger.HytaleLogger;
-import net.aerh.discordbridge.config.DiscordBridgeConfig;
-import net.aerh.discordbridge.config.DiscordConfig;
-import net.aerh.discordbridge.discord.model.DiscordMessage;
+import io.github.skyboundlab.discordbridge.config.DiscordBridgeConfig;
+import io.github.skyboundlab.discordbridge.config.DiscordConfig;
+import io.github.skyboundlab.discordbridge.discord.model.DiscordMessage;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -56,8 +57,11 @@ public final class DiscordBotConnection implements AutoCloseable {
             JDABuilder builder = JDABuilder.createDefault(discordConfig.getBotToken())
                     .setMemberCachePolicy(MemberCachePolicy.NONE)
                     .enableIntents(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT)
-                    .setActivity(Activity.playing(discordConfig.getPresenceMessage()))
                     .addEventListeners(listener);
+            String presence = discordConfig.getPresenceMessage();
+            if (!presence.isBlank()) {
+                builder.setActivity(Activity.playing(presence));
+            }
             this.jda = builder.build();
 
             if (discordConfig.isUseWebhookForChat()) {
@@ -80,10 +84,6 @@ public final class DiscordBotConnection implements AutoCloseable {
 
     public boolean isReady() {
         return readyFuture.isDone() && !readyFuture.isCompletedExceptionally() && bridgeChannel != null;
-    }
-
-    public void sendMessage(@NotNull String content) {
-        sendMessage(content, null);
     }
 
     public void sendMessage(@NotNull String content, @Nullable Integer embedColor) {
@@ -123,6 +123,10 @@ public final class DiscordBotConnection implements AutoCloseable {
         webhookSender.sendPlayerMessage(username, playerUuid, message);
     }
 
+    public CompletableFuture<Void> awaitReady() {
+        return readyFuture;
+    }
+
     @Override
     public void close() {
         shutdown();
@@ -137,6 +141,11 @@ public final class DiscordBotConnection implements AutoCloseable {
 
             if (jda != null) {
                 jda.shutdown();
+                try {
+                    jda.awaitShutdown(5, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
     }

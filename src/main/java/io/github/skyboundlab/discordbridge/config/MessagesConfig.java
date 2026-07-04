@@ -1,4 +1,4 @@
-package net.aerh.discordbridge.config;
+package io.github.skyboundlab.discordbridge.config;
 
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
@@ -43,7 +43,7 @@ public final class MessagesConfig {
             .build();
 
     private String discordLabel = "[Discord]";
-    private String inboundTemplate = "%label% %role% %username%: %message%";
+    private String inboundTemplate = "%label% %username%: %message%";
     private String outboundTemplate = "**%player%**: %message%";
     private String labelColor = "#5865F2";
     private String defaultRoleColor = "#99AAB5";
@@ -58,7 +58,7 @@ public final class MessagesConfig {
     @NotNull
     public String getInboundTemplate() {
         return inboundTemplate == null || inboundTemplate.isBlank()
-                ? "%label% %role% %username%: %message%"
+                ? "%label% %username%: %message%"
                 : inboundTemplate;
     }
 
