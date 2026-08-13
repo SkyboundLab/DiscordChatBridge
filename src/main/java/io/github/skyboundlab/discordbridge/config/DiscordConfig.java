@@ -20,6 +20,10 @@ public final class DiscordConfig {
                     (cfg, value) -> cfg.channelId = value,
                     cfg -> cfg.channelId)
             .add()
+            .append(new KeyedCodec<>("ThreadId", Codec.STRING),
+                    (cfg, value) -> cfg.threadId = value,
+                    cfg -> cfg.threadId)
+            .add()
             .append(new KeyedCodec<>("PresenceMessage", Codec.STRING),
                     (cfg, value) -> cfg.presenceMessage = value,
                     cfg -> cfg.presenceMessage)
@@ -52,6 +56,7 @@ public final class DiscordConfig {
 
     private String botToken = "";
     private String channelId = "";
+    private String threadId = "";
     private String presenceMessage = "";
     private boolean ignoreBotMessages = true;
     private boolean ignoreWebhookMessages = true;
@@ -68,6 +73,11 @@ public final class DiscordConfig {
     @NotNull
     public String getChannelId() {
         return channelId == null ? "" : channelId;
+    }
+
+    @NotNull
+    public String getThreadId() {
+        return threadId == null ? "" : threadId;
     }
 
     @NotNull
@@ -105,6 +115,6 @@ public final class DiscordConfig {
      * @return {@code true} if the bot can be started with these settings.
      */
     public boolean isValid() {
-        return !getBotToken().isBlank() && !getChannelId().isBlank();
+        return !getBotToken().isBlank() && (!getChannelId().isBlank() || !getThreadId().isBlank());
     }
 }

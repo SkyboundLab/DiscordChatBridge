@@ -4,11 +4,14 @@ import com.hypixel.hytale.logger.HytaleLogger;
 import io.github.skyboundlab.discordbridge.config.DiscordBridgeConfig;
 import io.github.skyboundlab.discordbridge.config.DiscordConfig;
 import io.github.skyboundlab.discordbridge.discord.model.DiscordMessage;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -17,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -27,13 +31,13 @@ final class BridgeListener extends ListenerAdapter {
     private final DiscordBridgeConfig config;
     private final CompletableFuture<Void> readyFuture;
     private final Consumer<DiscordMessage> relayToGameChat;
-    private final Consumer<TextChannel> discordChannelUpdater;
+    private final Consumer<GuildMessageChannel> discordChannelUpdater;
 
     BridgeListener(
             @NotNull DiscordBridgeConfig config,
             @NotNull CompletableFuture<Void> readyFuture,
             @NotNull Consumer<DiscordMessage> relayToGameChat,
-            @NotNull Consumer<TextChannel> discordChannelUpdater
+            @NotNull Consumer<GuildMessageChannel> discordChannelUpdater
     ) {
         this.config = config;
         this.readyFuture = readyFuture;
@@ -43,18 +47,56 @@ final class BridgeListener extends ListenerAdapter {
 
     @Override
     public void onReady(@NotNull ReadyEvent event) {
+        resolveBridgeChannel(event.getJDA());
+    }
+
+    private void resolveBridgeChannel(@NotNull JDA jda) {
+        if (jda.getStatus() == JDA.Status.SHUTDOWN) {
+            return;
+        }
+
         DiscordConfig discordConfig = config.getDiscordConfig();
-        TextChannel channel = event.getJDA().getTextChannelById(discordConfig.getChannelId());
-        if (channel == null) {
+        String channelId = discordConfig.getChannelId();
+        String threadId = discordConfig.getThreadId();
+
+        GuildMessageChannel bridgeChannel;
+
+        if (threadId != null && !threadId.isBlank()) {
+            ThreadChannel thread = jda.getThreadChannelById(threadId);
+            if (thread == null) {
+                // threads may not be in the cache yet at onReady since they are loaded from
+                // a later THREAD_LIST_SYNC gateway event, so retry instead of permanently bailing
+                LOGGER.at(Level.INFO).log("Thread with id %s not cached yet, retrying in 5 seconds", threadId);
+                jda.getGatewayPool().schedule(() -> resolveBridgeChannel(jda), 5, TimeUnit.SECONDS);
+                return;
+            }
+
+            LOGGER.at(Level.INFO).log("Loaded Discord thread: %s", thread.getName());
+            bridgeChannel = thread;
+        } else {
+            TextChannel channel = jda.getTextChannelById(channelId);
+            if (channel == null) {
+                IllegalStateException exception = new IllegalStateException(
+                        "Unable to find text channel with id " + channelId);
+                LOGGER.at(Level.SEVERE).withCause(exception).log("Discord bridge channel missing");
+                readyFuture.completeExceptionally(exception);
+                return;
+            }
+
+            LOGGER.at(Level.INFO).log("Loaded Discord channel: %s", channel.getName());
+            bridgeChannel = channel;
+        }
+
+        if (!bridgeChannel.canTalk()) {
             IllegalStateException exception = new IllegalStateException(
-                    "Unable to find text channel with id " + discordConfig.getChannelId());
-            LOGGER.at(Level.SEVERE).withCause(exception).log("Discord bridge channel missing");
+                    "Discord bot cannot talk in the configured bridge channel");
+            LOGGER.at(Level.SEVERE).withCause(exception).log("Discord bridge channel unavailable");
             readyFuture.completeExceptionally(exception);
             return;
         }
 
-        discordChannelUpdater.accept(channel);
-        LOGGER.at(Level.INFO).log("Discord bot connected as %s", event.getJDA().getSelfUser().getAsTag());
+        discordChannelUpdater.accept(bridgeChannel);
+        LOGGER.at(Level.INFO).log("Discord bot connected as %s", jda.getSelfUser().getAsTag());
         readyFuture.complete(null);
     }
 
@@ -64,7 +106,7 @@ final class BridgeListener extends ListenerAdapter {
 
         if (!config.isRelayDiscordToGame()
                 || event.isFromType(ChannelType.PRIVATE)
-                || !event.getChannel().getId().equals(discordConfig.getChannelId())) {
+                || !event.getChannel().getId().equals(getBridgeTargetId(discordConfig))) {
             return;
         }
 
@@ -101,5 +143,11 @@ final class BridgeListener extends ListenerAdapter {
         );
 
         relayToGameChat.accept(bridgeMessage);
+    }
+
+    @NotNull
+    private static String getBridgeTargetId(@NotNull DiscordConfig discordConfig) {
+        String threadId = discordConfig.getThreadId();
+        return threadId != null && !threadId.isBlank() ? threadId : discordConfig.getChannelId();
     }
 }

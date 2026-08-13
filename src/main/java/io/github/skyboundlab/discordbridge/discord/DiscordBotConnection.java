@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.jetbrains.annotations.NotNull;
@@ -32,7 +32,7 @@ public final class DiscordBotConnection implements AutoCloseable {
     private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
     private JDA jda;
-    private volatile TextChannel bridgeChannel;
+    private volatile GuildMessageChannel bridgeChannel;
     @Nullable
     private WebhookMessageSender webhookSender;
 
@@ -68,7 +68,7 @@ public final class DiscordBotConnection implements AutoCloseable {
                 String webhookUrl = discordConfig.getWebhookUrl();
                 if (!webhookUrl.isBlank()) {
                     String avatarUrlFormat = config.getMessagesConfig().getAvatarUrlFormat();
-                    this.webhookSender = new WebhookMessageSender(webhookUrl, avatarUrlFormat);
+                    this.webhookSender = new WebhookMessageSender(webhookUrl, avatarUrlFormat, discordConfig.getThreadId());
                     LOGGER.at(Level.INFO).log("Webhook sender initialized");
                 } else {
                     LOGGER.at(Level.WARNING).log("UseWebhookForChat is enabled but WebhookUrl is not set");
@@ -87,7 +87,7 @@ public final class DiscordBotConnection implements AutoCloseable {
     }
 
     public void sendMessage(@NotNull String content, @Nullable Integer embedColor) {
-        TextChannel channel = this.bridgeChannel;
+        GuildMessageChannel channel = this.bridgeChannel;
         if (channel == null) {
             LOGGER.at(Level.FINE).log("Discord channel not ready; dropping message.");
             return;
@@ -150,7 +150,7 @@ public final class DiscordBotConnection implements AutoCloseable {
         }
     }
 
-    private void onChannelReady(@NotNull TextChannel channel) {
+    private void onChannelReady(@NotNull GuildMessageChannel channel) {
         this.bridgeChannel = channel;
     }
 }

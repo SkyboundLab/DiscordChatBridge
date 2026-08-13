@@ -16,8 +16,12 @@ public final class WebhookMessageSender implements AutoCloseable {
     private final WebhookClient webhookClient;
     private final String avatarUrlFormat;
 
-    public WebhookMessageSender(@NotNull String webhookUrl, @NotNull String avatarUrlFormat) {
-        this.webhookClient = new WebhookClientBuilder(webhookUrl)
+    public WebhookMessageSender(@NotNull String webhookUrl, @NotNull String avatarUrlFormat, @NotNull String threadId) {
+        WebhookClientBuilder builder = new WebhookClientBuilder(webhookUrl);
+        if (threadId != null && !threadId.isBlank()) {
+            builder.setThreadId(Long.parseLong(threadId));
+        }
+        this.webhookClient = builder
                 .setWait(false)
                 .build();
         this.avatarUrlFormat = avatarUrlFormat;
