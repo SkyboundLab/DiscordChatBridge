@@ -1,7 +1,7 @@
 {
   "Group": "io.github.skyboundlab",
   "Name": "DiscordChatBridge",
-  "Version": "2.0.0",
+  "Version": "2.1.1",
   "Description": "Discord ↔ Hytale chat relay plugin",
   "Authors": [
     { "Name": "Aerh" },

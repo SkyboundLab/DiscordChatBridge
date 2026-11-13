@@ -238,7 +238,7 @@ public final class DiscordBridgePlugin extends JavaPlugin {
             return;
         }
 
-        World world = event.getWorld();
+        World world = event.getSourceWorld();
         if (world == null) {
             return;
         }

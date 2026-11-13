@@ -200,10 +200,6 @@ public final class KillFeedFormatter {
                 var dc = store.getComponent(es.getRef(), DisplayNameComponent.getComponentType());
                 yield extractDisplayText(dc, locale);
             }
-            case Damage.EnvironmentSource env -> {
-                String translated = I18nModule.get().getMessage(locale, env.getType());
-                yield translated != null && !translated.isBlank() ? translated : env.getType();
-            }
             default -> null;
         };
         if (fromSource != null) return fromSource;
